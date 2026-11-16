@@ -11,17 +11,17 @@
 
       <form @submit.prevent="handleRegister" class="space-y-4">
         <div class="space-y-1.5">
-          <label for="name" class="label">Nama Lengkap</label>
+          <label for="name" class="label">Nama Lengkap <span class="text-rose-500">*</span></label>
           <input id="name" v-model.trim="form.name" type="text" class="input" placeholder="Nama Anda" />
         </div>
 
         <div class="space-y-1.5">
-          <label for="email" class="label">Email</label>
+          <label for="email" class="label">Email <span class="text-rose-500">*</span></label>
           <input id="email" v-model.trim="form.email" type="email" class="input" placeholder="nama@simplejourney.id" />
         </div>
 
         <div class="space-y-1.5">
-          <label for="password" class="label">Password</label>
+          <label for="password" class="label">Password <span class="text-rose-500">*</span></label>
           <input id="password" v-model="form.password" type="password" class="input" placeholder="Minimal 8 karakter" />
         </div>
 

@@ -9,7 +9,7 @@
     <div class="card p-6">
       <form @submit.prevent="handleSubmit" class="space-y-4">
         <div class="space-y-1.5">
-          <label for="title" class="label">Judul Tiket</label>
+          <label for="title" class="label">Judul Tiket <span class="text-rose-500">*</span></label>
           <input
             id="title"
             v-model.trim="form.title"
@@ -21,7 +21,7 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="space-y-1.5">
-            <label for="category" class="label">Kategori</label>
+            <label for="category" class="label">Kategori <span class="text-rose-500">*</span></label>
             <select id="category" v-model="form.category" class="input">
               <option value="IT Support">IT Support</option>
               <option value="Hardware">Hardware</option>
@@ -32,7 +32,7 @@
           </div>
 
           <div class="space-y-1.5">
-            <label for="priority" class="label">Prioritas</label>
+            <label for="priority" class="label">Prioritas <span class="text-rose-500">*</span></label>
             <select id="priority" v-model="form.priority" class="input">
               <option value="low">Low</option>
               <option value="medium">Medium</option>
@@ -43,7 +43,7 @@
         </div>
 
         <div class="space-y-1.5">
-          <label for="description" class="label">Deskripsi Lengkap</label>
+          <label for="description" class="label">Deskripsi Lengkap <span class="text-rose-500">*</span></label>
           <textarea
             id="description"
             v-model.trim="form.description"

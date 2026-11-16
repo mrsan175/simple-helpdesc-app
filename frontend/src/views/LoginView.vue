@@ -11,7 +11,7 @@
 
       <form @submit.prevent="handleLogin" class="space-y-4">
         <div class="space-y-1.5">
-          <label for="email" class="label">Email</label>
+          <label for="email" class="label">Email <span class="text-rose-500">*</span></label>
           <input
             id="email"
             v-model.trim="form.email"
@@ -22,7 +22,7 @@
         </div>
 
         <div class="space-y-1.5">
-          <label for="password" class="label">Password</label>
+          <label for="password" class="label">Password <span class="text-rose-500">*</span></label>
           <input
             id="password"
             v-model="form.password"

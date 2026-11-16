@@ -61,14 +61,22 @@ func Seed(db *sql.DB) error {
 		status         domain.TicketStatus
 		requesterEmail string
 		assignee       interface{}
+		ageHours       int
 	}{
-		{"Laptop Budi tidak bisa terhubung ke Wi-Fi kantor", "Sejak pagi laptop saya tidak menemukan SSID kantor. Sudah restart tapi tetap tidak muncul.", "Network", domain.PriorityHigh, domain.StatusOpen, "requester1@simplejourney.id", nil},
-		{"Akses VPN Budi habis masa berlaku", "VPN token saya kadaluarsa dan tidak bisa login dari rumah. Mohon bantuan reset.", "IT Support", domain.PriorityUrgent, domain.StatusOpen, "requester1@simplejourney.id", nil},
-		{"Printer lantai 3 macet (dilaporkan Budi)", "Printer di lantai 3 menampilkan error paper jam padahal tidak ada kertas tersangkut.", "Hardware", domain.PriorityMedium, domain.StatusInProgress, "requester1@simplejourney.id", ids["agent@simplejourney.id"]},
+		{"Laptop Budi tidak bisa terhubung ke Wi-Fi kantor", "Sejak pagi laptop saya tidak menemukan SSID kantor. Sudah restart tapi tetap tidak muncul.", "Network", domain.PriorityHigh, domain.StatusOpen, "requester1@simplejourney.id", nil, 5},
+		{"Akses VPN Budi habis masa berlaku", "VPN token saya kadaluarsa dan tidak bisa login dari rumah. Mohon bantuan reset.", "IT Support", domain.PriorityUrgent, domain.StatusOpen, "requester1@simplejourney.id", nil, 30},
+		{"Printer lantai 3 macet (dilaporkan Budi)", "Printer di lantai 3 menampilkan error paper jam padahal tidak ada kertas tersangkut.", "Hardware", domain.PriorityMedium, domain.StatusInProgress, "requester1@simplejourney.id", ids["agent@simplejourney.id"], 26},
+		{"Email Budi tidak bisa mengirim lampiran besar", "Gagal mengirim email dengan lampiran di atas 10 MB, pesan error 'message too large'.", "IT Support", domain.PriorityHigh, domain.StatusOpen, "requester1@simplejourney.id", nil, 8},
+		{"Keyboard laptop Budi beberapa tombol tidak berfungsi", "Tombol spasi dan enter sering tidak merespons, sudah dibersihkan tapi tetap bermasalah.", "Hardware", domain.PriorityLow, domain.StatusResolved, "requester1@simplejourney.id", ids["agent@simplejourney.id"], 50},
+		{"Akses Google Drive Budi terblokir", "Tidak bisa membuka drive.google.com, muncul halaman blocked by administrator.", "Network", domain.PriorityMedium, domain.StatusClosed, "requester1@simplejourney.id", ids["agent@simplejourney.id"], 72},
 
-		{"Permintaan lisensi Figma dari Siti", "Tim desain butuh 1 lisensi Figma Professional tambahan untuk bulan ini.", "Software", domain.PriorityLow, domain.StatusResolved, "requester2@simplejourney.id", ids["agent@simplejourney.id"]},
-		{"Kursi kerja Siti rusak", "Kursi di meja saya hidroliknya tidak bisa naik turun. Mohon diganti.", "HR/Facility", domain.PriorityMedium, domain.StatusClosed, "requester2@simplejourney.id", ids["agent@simplejourney.id"]},
-		{"Monitor Siti berkedip saat digunakan", "Monitor eksternal berkedip setiap beberapa menit setelah docking station terpasang.", "Hardware", domain.PriorityMedium, domain.StatusOpen, "requester2@simplejourney.id", nil},
+		{"Permintaan lisensi Figma dari Siti", "Tim desain butuh 1 lisensi Figma Professional tambahan untuk bulan ini.", "Software", domain.PriorityLow, domain.StatusResolved, "requester2@simplejourney.id", ids["agent@simplejourney.id"], 48},
+		{"Kursi kerja Siti rusak", "Kursi di meja saya hidroliknya tidak bisa naik turun. Mohon diganti.", "HR/Facility", domain.PriorityMedium, domain.StatusClosed, "requester2@simplejourney.id", ids["agent@simplejourney.id"], 96},
+		{"Monitor Siti berkedip saat digunakan", "Monitor eksternal berkedip setiap beberapa menit setelah docking station terpasang.", "Hardware", domain.PriorityMedium, domain.StatusOpen, "requester2@simplejourney.id", nil, 12},
+		{"Siti lupa password akun HRIS", "Password HRIS saya tidak diterima setelah reset via email, tolong dibukakan kembali.", "IT Support", domain.PriorityHigh, domain.StatusInProgress, "requester2@simplejourney.id", ids["agent@simplejourney.id"], 20},
+		{"VPN Siti sering terputus saat video call", "Koneksi VPN drop setiap 5-10 menit saat meeting, sinyal Wi-Fi stabil saja.", "Network", domain.PriorityMedium, domain.StatusOpen, "requester2@simplejourney.id", nil, 3},
+		{"Permintaan instalasi antivirus untuk laptop Siti", "Laptop baru belum terpasang antivirus standar perusahaan, mohon dibantu instal.", "Software", domain.PriorityLow, domain.StatusResolved, "requester2@simplejourney.id", ids["agent@simplejourney.id"], 80},
+		{"Meja meeting lantai 2 rusak", "Salah satu kaki meja meeting lantai 2 patah, tidak aman digunakan rapat.", "HR/Facility", domain.PriorityMedium, domain.StatusOpen, "requester2@simplejourney.id", nil, 15},
 	}
 
 	for _, s := range samples {
@@ -80,12 +88,12 @@ func Seed(db *sql.DB) error {
 			continue
 		}
 
-		now := time.Now().UTC()
+		createdAt := time.Now().UTC().Add(-time.Duration(s.ageHours) * time.Hour)
 		if _, err := db.ExecContext(ctx,
 			`INSERT INTO tickets (id, title, description, category, priority, status, requester_id, assignee_id, created_at, updated_at)
 			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
 			uuid.NewString(), s.title, s.description, s.category, s.priority, s.status,
-			ids[s.requesterEmail], s.assignee, now, now); err != nil {
+			ids[s.requesterEmail], s.assignee, createdAt, createdAt); err != nil {
 			return fmt.Errorf("seed ticket %q: %w", s.title, err)
 		}
 	}

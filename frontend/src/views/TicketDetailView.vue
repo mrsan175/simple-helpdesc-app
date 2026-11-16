@@ -64,7 +64,7 @@
           </div>
 
           <div class="mt-6 pt-4 border-t border-slate-100">
-            <label for="comment" class="label">Tulis Balasan</label>
+            <label for="comment" class="label">Tulis Balasan <span class="text-rose-500">*</span></label>
             <textarea
               id="comment"
               v-model="newComment.body"
