@@ -98,8 +98,7 @@
           <thead class="border-b bg-slate-50">
             <tr>
               <th class="text-left font-medium text-slate-600 px-4 py-3">ID</th>
-              <th class="text-left font-medium text-slate-600 px-4 py-3">Judul</th>
-              <th class="text-left font-medium text-slate-600 px-4 py-3">Kategori</th>
+              <th class="text-left font-medium text-slate-600 px-4 py-3">Tiket</th>
               <th v-if="!isRequester" class="text-left font-medium text-slate-600 px-4 py-3">Requester</th>
               <th class="text-left font-medium text-slate-600 px-4 py-3">Status</th>
               <th class="text-left font-medium text-slate-600 px-4 py-3">Prioritas</th>
@@ -119,9 +118,11 @@
               </td>
               <td class="px-4 py-3 max-w-xs">
                 <p class="font-medium text-slate-900 truncate">{{ ticket.title }}</p>
-                <span v-if="ticket.is_overdue" class="text-xs text-rose-600 font-medium">● SLA Overdue</span>
+                <p class="text-xs text-slate-500 mt-0.5">
+                  {{ ticket.category }}
+                  <span v-if="ticket.is_overdue" class="ml-2 text-rose-600 font-medium">● SLA Overdue</span>
+                </p>
               </td>
-              <td class="px-4 py-3 text-slate-600 whitespace-nowrap">{{ ticket.category }}</td>
               <td v-if="!isRequester" class="px-4 py-3">
                 <div class="min-w-0">
                   <p class="font-medium text-slate-900 truncate">{{ ticket.requester?.name || '-' }}</p>
@@ -335,7 +336,13 @@ const showToast = (message, type = 'success') => {
 
 const formatDate = (value) => {
   if (!value) return '-'
-  return new Date(value).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+  return new Date(value).toLocaleDateString('id-ID', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
 
 onMounted(async () => {

@@ -115,7 +115,13 @@ const showToast = (message, type = 'success') => {
 
 const formatDate = (value) => {
   if (!value) return '-'
-  return new Date(value).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+  return new Date(value).toLocaleDateString('id-ID', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
 
 onMounted(fetchUsers)
