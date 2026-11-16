@@ -90,20 +90,19 @@
       <button v-if="!auth.isAgent" class="btn btn-primary btn-sm ml-2" @click="$router.push('/tickets/create')">Buat Tiket</button>
     </EmptyState>
 
-    <!-- Data Table -->
     <!-- Desktop Table -->
     <div v-else class="card overflow-hidden hidden md:block">
       <div class="overflow-x-auto">
-        <table class="w-full text-sm">
+        <table class="w-full text-xs">
           <thead class="border-b bg-slate-50">
             <tr>
-              <th class="text-left font-medium text-slate-600 px-4 py-3">ID</th>
-              <th class="text-left font-medium text-slate-600 px-4 py-3">Keterangan</th>
-              <th v-if="!isRequester" class="text-left font-medium text-slate-600 px-4 py-3">Pelapor</th>
-              <th class="text-left font-medium text-slate-600 px-4 py-3">Status</th>
-              <th class="text-left font-medium text-slate-600 px-4 py-3">Prioritas</th>
-              <th class="text-left font-medium text-slate-600 px-4 py-3">Ditangani Oleh</th>
-              <th class="text-left font-medium text-slate-600 px-4 py-3">Dibuat</th>
+              <th class="text-left font-medium text-slate-500 px-3 py-2">ID</th>
+              <th class="text-left font-medium text-slate-500 px-3 py-2">Keterangan</th>
+              <th v-if="!isRequester" class="text-left font-medium text-slate-500 px-3 py-2">Pelapor</th>
+              <th class="text-left font-medium text-slate-500 px-3 py-2">Status</th>
+              <th class="text-left font-medium text-slate-500 px-3 py-2">Prioritas</th>
+              <th class="text-left font-medium text-slate-500 px-3 py-2">Ditangani Oleh</th>
+              <th class="text-left font-medium text-slate-500 px-3 py-2">Dibuat</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
@@ -113,31 +112,29 @@
               class="hover:bg-slate-50/80 cursor-pointer transition-colors"
               @click="$router.push(`/tickets/${ticket.id}`)"
             >
-              <td class="px-4 py-3">
-                <span class="text-xs font-mono text-slate-400">{{ ticket.id.slice(0, 8) }}</span>
+              <td class="px-3 py-2 align-top">
+                <span class="font-mono text-[11px] text-slate-400">{{ ticket.id.slice(0, 8) }}</span>
               </td>
-              <td class="px-4 py-3 max-w-xs">
-                <p class="font-medium text-slate-900 truncate">{{ ticket.title }}</p>
-                <p class="text-xs text-slate-500 mt-0.5">
+              <td class="px-3 py-2 align-top max-w-[22rem]">
+                <p class="font-medium text-slate-900 leading-snug truncate">{{ ticket.title }}</p>
+                <p class="text-[11px] text-slate-500 mt-0.5">
                   {{ ticket.category }}
-                  <span v-if="ticket.is_overdue" class="ml-2 text-rose-600 font-medium">● SLA Overdue</span>
+                  <span v-if="ticket.is_overdue" class="ml-1.5 text-rose-600 font-medium">● SLA</span>
                 </p>
               </td>
-              <td v-if="!isRequester" class="px-4 py-3">
-                <div class="min-w-0">
-                  <p class="font-medium text-slate-900 truncate">{{ ticket.requester?.name || '-' }}</p>
-                  <p class="text-xs text-slate-500 truncate">{{ ticket.requester?.email || '-' }}</p>
-                </div>
+              <td v-if="!isRequester" class="px-3 py-2 align-top">
+                <p class="font-medium text-slate-900 leading-tight truncate max-w-[12rem]">{{ ticket.requester?.name || '-' }}</p>
+                <p class="text-[11px] text-slate-500 truncate max-w-[12rem]">{{ ticket.requester?.email || '-' }}</p>
               </td>
-              <td class="px-4 py-3"><StatusBadge :status="ticket.status" /></td>
-              <td class="px-4 py-3"><PriorityBadge :priority="ticket.priority" /></td>
-              <td class="px-4 py-3 text-slate-600">
+              <td class="px-3 py-2 align-top whitespace-nowrap"><StatusBadge :status="ticket.status" /></td>
+              <td class="px-3 py-2 align-top whitespace-nowrap"><PriorityBadge :priority="ticket.priority" /></td>
+              <td class="px-3 py-2 align-top text-slate-600 whitespace-nowrap">
                 <span v-if="ticket.assignee">{{ ticket.assignee.name }}</span>
-                <span v-else class="text-slate-400">Belum di-tangani</span>
+                <span v-else class="text-slate-400 italic">Belum di-tangani</span>
               </td>
-              <td class="px-4 py-3 text-slate-500 whitespace-nowrap">
+              <td class="px-3 py-2 align-top text-slate-500 whitespace-nowrap">
                 <p>{{ formatDate(ticket.created_at) }}</p>
-                <p class="text-xs text-slate-400">{{ formatTime(ticket.created_at) }}</p>
+                <p class="text-[11px] text-slate-400">{{ formatTime(ticket.created_at) }}</p>
               </td>
             </tr>
           </tbody>
@@ -146,35 +143,37 @@
     </div>
 
     <!-- Mobile Card List -->
-    <div v-if="!loading && !error && tickets.length > 0" class="md:hidden space-y-3">
+    <div v-if="!loading && !error && tickets.length > 0" class="md:hidden space-y-2">
       <div
         v-for="ticket in tickets"
         :key="ticket.id"
-        class="card p-4 cursor-pointer hover:bg-slate-50/80 transition-colors"
+        class="card p-3 cursor-pointer hover:bg-slate-50/80 transition-colors"
         @click="$router.push(`/tickets/${ticket.id}`)"
       >
-        <div class="flex items-start justify-between gap-3">
-          <div class="min-w-0">
-            <p class="text-xs font-mono text-slate-400">{{ ticket.id.slice(0, 8) }}</p>
-            <p class="font-medium text-slate-900 mt-0.5">{{ ticket.title }}</p>
-            <p class="text-xs text-slate-500 mt-0.5">{{ ticket.category }}</p>
+        <div class="flex items-start justify-between gap-2">
+          <div class="min-w-0 flex-1">
+            <p class="text-[10px] font-mono text-slate-400 leading-none">
+              {{ ticket.id.slice(0, 8) }}
+            </p>
+            <p class="font-medium text-sm text-slate-900 leading-snug mt-1">{{ ticket.title }}</p>
+            <p class="text-[11px] text-slate-500 mt-0.5">
+              {{ ticket.category }}
+              <span v-if="ticket.is_overdue" class="ml-1.5 text-rose-600 font-medium">● SLA</span>
+            </p>
           </div>
-          <PriorityBadge :priority="ticket.priority" />
-        <div class="flex flex-wrap items-center gap-2 mt-3">
-          <StatusBadge :status="ticket.status" />
-          <span v-if="ticket.is_overdue" class="text-xs text-rose-600 font-medium">● SLA Overdue</span>
-        </div>
+          <div class="flex flex-col items-end gap-1 shrink-0">
+            <StatusBadge :status="ticket.status" />
+            <PriorityBadge :priority="ticket.priority" />
+          </div>
         </div>
 
-     
-
-        <div class="mt-3 pt-3 border-t border-slate-100 space-y-1 text-xs text-slate-500">
+        <div class="mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-slate-500">
           <p v-if="!isRequester">
             <span class="text-slate-400">Pelapor:</span>
-            {{ ticket.requester?.name || '-' }} · {{ ticket.requester?.email || '-' }}
+            {{ ticket.requester?.name || '-' }}
           </p>
           <p>
-            <span class="text-slate-400">Ditangani Oleh:</span>
+            <span class="text-slate-400">Ditangani:</span>
             {{ ticket.assignee?.name || 'Belum di-tangani' }}
           </p>
           <p>
