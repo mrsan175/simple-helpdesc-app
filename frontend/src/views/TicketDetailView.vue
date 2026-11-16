@@ -9,92 +9,119 @@
 
     <ErrorAlert v-else-if="error" :message="error" :show-retry="true" @retry="fetchTicket" />
 
-    <div v-else-if="ticket" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div v-else-if="ticket" class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
       <!-- Left column: content & comments -->
-      <div class="lg:col-span-2 space-y-6">
-        <div class="card p-6">
-          <div class="flex items-start justify-between gap-4">
-            <div>
-              <h1 class="text-xl font-semibold text-slate-900">{{ ticket.title }}</h1>
-              <p class="text-sm text-slate-500 mt-1">
-                Dibuat oleh {{ ticket.requester?.name || '-' }} • {{ formatDate(ticket.created_at) }} {{ formatTime(ticket.created_at) }}
+      <div class="lg:col-span-2 space-y-4 sm:space-y-6 order-2 lg:order-1">
+        <div class="card p-4 sm:p-6">
+          <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+            <div class="min-w-0 flex-1">
+              <span class="text-[11px] font-mono text-slate-400 select-all">{{ ticket.id }}</span>
+              <h1 class="text-lg sm:text-xl font-semibold text-slate-900 mt-1 leading-snug break-words">
+                {{ ticket.title }}
+              </h1>
+              <p class="text-xs sm:text-sm text-slate-500 mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                <span>Pelapor: <strong class="font-medium text-slate-700">{{ ticket.requester?.name || '-' }}</strong></span>
+                <span class="text-slate-300">•</span>
+                <span>{{ formatDate(ticket.created_at) }} ({{ formatTime(ticket.created_at) }})</span>
               </p>
             </div>
-            <div class="flex flex-col items-end gap-2 shrink-0">
+            <div class="flex items-center sm:flex-col sm:items-end gap-1.5 shrink-0 self-start">
               <StatusBadge :status="ticket.status" />
               <PriorityBadge :priority="ticket.priority" />
             </div>
           </div>
 
-          <hr class="my-4 border-slate-200" />
-          <p class="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{{ ticket.description }}</p>
-
-          <div v-if="ticket.is_overdue" class="mt-4 inline-flex items-center gap-2 rounded-md bg-rose-50 border border-rose-200 px-3 py-1.5 text-xs font-medium text-rose-700">
+          <div v-if="ticket.is_overdue" class="mt-3 inline-flex items-center gap-1.5 rounded-md bg-rose-50 border border-rose-200 px-2.5 py-1 text-xs font-medium text-rose-700">
+            <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
             SLA Overdue
           </div>
+
+          <hr class="my-4 border-slate-100" />
+          <p class="text-xs sm:text-sm text-slate-700 whitespace-pre-wrap leading-relaxed break-words">{{ ticket.description }}</p>
         </div>
 
-        <div class="card p-6">
-          <h2 class="text-base font-semibold text-slate-900 mb-4">Diskusi</h2>
+        <div class="card p-4 sm:p-6">
+          <h2 class="text-sm sm:text-base font-semibold text-slate-900 mb-3 sm:mb-4">
+            Diskusi ({{ (ticket.comments || []).length }})
+          </h2>
 
-          <div v-if="!(ticket.comments || []).length" class="text-sm text-slate-500 py-4">
-            Belum ada komentar pada tiket ini.
+          <div v-if="!(ticket.comments || []).length" class="text-center py-6 text-xs sm:text-sm text-slate-400">
+            Belum ada balasan pada tiket ini.
           </div>
 
-          <div class="space-y-4">
+          <div v-else class="space-y-3">
             <div
               v-for="comment in ticket.comments || []"
               :key="comment.id"
-              :class="['p-4 rounded-lg border', comment.is_internal ? 'bg-amber-50/70 border-amber-200' : 'bg-white border-slate-200']"
+              :class="[
+                'p-3 sm:p-4 rounded-lg border text-xs sm:text-sm transition-colors',
+                comment.is_internal ? 'bg-amber-50/70 border-amber-200' : 'bg-white border-slate-200'
+              ]"
             >
-              <div class="flex items-center justify-between mb-2">
-                <div class="flex items-center gap-2">
-                  <span class="text-sm font-medium text-slate-900">{{ comment.author?.name || 'User' }}</span>
+              <div class="flex items-center justify-between gap-2 mb-1.5">
+                <div class="flex items-center gap-2 min-w-0">
+                  <div class="w-6 h-6 rounded-full bg-slate-200 text-slate-700 font-semibold flex items-center justify-center text-[10px] shrink-0">
+                    {{ (comment.author?.name || 'U').charAt(0).toUpperCase() }}
+                  </div>
+                  <span class="font-medium text-slate-900 truncate">{{ comment.author?.name || 'User' }}</span>
                   <span
                     v-if="comment.is_internal"
-                    class="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200"
+                    class="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200 shrink-0"
                   >
                     Internal Note
                   </span>
                 </div>
-                <span class="text-xs text-slate-400">{{ formatDate(comment.created_at) }}</span>
+                <span class="text-[11px] text-slate-400 shrink-0">
+                  {{ formatDate(comment.created_at) }} · {{ formatTime(comment.created_at) }}
+                </span>
               </div>
-              <p class="text-sm text-slate-700 whitespace-pre-wrap">{{ comment.body }}</p>
+              <p class="text-slate-700 whitespace-pre-wrap leading-relaxed pl-8 break-words">{{ comment.body }}</p>
             </div>
           </div>
 
-          <div class="mt-6 pt-4 border-t border-slate-100">
-            <label for="comment" class="label">Tulis Balasan</label>
+          <div class="mt-5 sm:mt-6 pt-4 border-t border-slate-100">
+            <label for="comment" class="label text-xs sm:text-sm">Tulis Balasan <span class="text-rose-500">*</span></label>
             <textarea
               id="comment"
               v-model="newComment.body"
               rows="3"
-              class="input mt-2"
-              placeholder="Tulis komentar Anda..."
+              class="input mt-1.5 text-xs sm:text-sm"
+              placeholder="Tulis balasan atau penjelasan kendala..."
             ></textarea>
 
-            <label v-if="isAgentOrAdmin" class="flex items-center gap-2 mt-3 text-sm text-slate-700 cursor-pointer">
-              <input v-model="newComment.is_internal" type="checkbox" class="rounded border-slate-300 text-slate-900 focus:ring-slate-900/10" />
-              Jadikan catatan internal (hanya dilihat Agent & Admin)
+            <label v-if="isAgentOrAdmin" class="flex items-start sm:items-center gap-2 mt-2.5 text-xs text-slate-700 cursor-pointer select-none">
+              <input
+                v-model="newComment.is_internal"
+                type="checkbox"
+                class="rounded border-slate-300 text-slate-900 focus:ring-slate-900/10 mt-0.5 sm:mt-0"
+              />
+              <span>Jadikan catatan internal <span class="text-slate-400">(hanya dilihat Agent & Admin)</span></span>
             </label>
 
-            <button class="btn-primary mt-4" :disabled="!newComment.body.trim() || submitting" @click="submitComment">
-              Kirim Komentar
-            </button>
+            <div class="mt-3 flex justify-end">
+              <button
+                class="btn-primary btn-sm sm:h-10 sm:px-4 sm:text-sm w-full sm:w-auto"
+                :disabled="!newComment.body.trim() || submitting"
+                @click="submitComment"
+              >
+                <span v-if="submitting" class="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin"></span>
+                {{ submitting ? 'Mengirim...' : 'Kirim Balasan' }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Right column: controls -->
-      <div class="space-y-6">
+      <div class="space-y-4 sm:space-y-6 order-1 lg:order-2">
         <!-- Aksi Status: hanya muncul jika ada aksi yang dapat dilakukan -->
-        <div v-if="availableActions.length > 0" class="card p-6">
-          <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Aksi Status</h2>
-          <div class="space-y-2">
+        <div v-if="availableActions.length > 0" class="card p-4 sm:p-5 border-slate-900/10 shadow-sm">
+          <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2.5">Aksi Status</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2">
             <button
               v-for="action in availableActions"
               :key="action.target"
-              :class="['btn w-full', action.variant]"
+              :class="['btn w-full btn-sm sm:h-10 text-xs sm:text-sm font-medium', action.variant]"
               @click="changeStatus(action.target)"
             >
               {{ action.label }}
@@ -102,36 +129,27 @@
           </div>
         </div>
 
-        <!-- Properti Tiket -->
-        <div class="card p-6">
-          <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100">
+        <!-- Keterangan Tiket -->
+        <div class="card p-4 sm:p-5">
+          <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 pb-2 border-b border-slate-100">
             Keterangan Tiket
           </h2>
 
-          <dl class="space-y-4">
+          <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3 sm:gap-4 text-xs">
             <div>
-              <dt class="text-xs font-medium text-slate-400 uppercase tracking-wide">ID Tiket</dt>
-              <dd class="mt-1">
-                <span class="inline-block text-xs font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded break-all">
-                  {{ ticket.id }}
-                </span>
-              </dd>
-            </div>
-
-            <div>
-              <dt class="text-xs font-medium text-slate-400 uppercase tracking-wide">Status</dt>
+              <dt class="font-medium text-slate-400 uppercase tracking-wide text-[11px]">Status</dt>
               <dd class="mt-1">
                 <StatusBadge :status="ticket.status" />
               </dd>
             </div>
 
             <div>
-              <dt class="text-xs font-medium text-slate-400 uppercase tracking-wide">Prioritas</dt>
+              <dt class="font-medium text-slate-400 uppercase tracking-wide text-[11px]">Prioritas</dt>
               <dd class="mt-1">
                 <select
                   v-if="canEditPriority"
                   :value="ticket.priority"
-                  class="input text-sm py-1.5"
+                  class="input text-xs py-1 h-8"
                   @change="updatePriority($event.target.value)"
                 >
                   <option value="low">Low</option>
@@ -144,58 +162,58 @@
             </div>
 
             <div>
-              <dt class="text-xs font-medium text-slate-400 uppercase tracking-wide">Ditangani Oleh</dt>
+              <dt class="font-medium text-slate-400 uppercase tracking-wide text-[11px]">Ditangani Oleh</dt>
               <dd class="mt-1">
                 <select
                   v-if="auth.isAdmin"
                   :value="ticket.assignee_id || ''"
-                  class="input text-sm py-1.5"
+                  class="input text-xs py-1 h-8"
                   @change="updateAssignee($event.target.value)"
                 >
                   <option value="">Unassigned</option>
                   <option v-for="u in assignees" :key="u.id" :value="u.id">{{ u.name }}</option>
                 </select>
                 <div v-else-if="ticket.assignee" class="flex items-center gap-2">
-                  <div class="w-6 h-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-semibold shrink-0">
+                  <div class="w-6 h-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-[10px] font-semibold shrink-0">
                     {{ ticket.assignee.name.charAt(0).toUpperCase() }}
                   </div>
                   <div class="min-w-0">
-                    <p class="text-sm font-medium text-slate-900 truncate">{{ ticket.assignee.name }}</p>
-                    <p class="text-xs text-slate-500 truncate">{{ ticket.assignee.email }}</p>
+                    <p class="font-medium text-slate-900 truncate">{{ ticket.assignee.name }}</p>
+                    <p class="text-[11px] text-slate-500 truncate">{{ ticket.assignee.email }}</p>
                   </div>
                 </div>
-                <span v-else class="text-sm text-slate-400 italic">Belum di-tangani</span>
+                <span v-else class="text-slate-400 italic">Belum di-tangani</span>
               </dd>
             </div>
 
             <div>
-              <dt class="text-xs font-medium text-slate-400 uppercase tracking-wide">Kategori</dt>
+              <dt class="font-medium text-slate-400 uppercase tracking-wide text-[11px]">Kategori</dt>
               <dd class="mt-1">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
                   {{ ticket.category }}
                 </span>
               </dd>
             </div>
 
             <div>
-              <dt class="text-xs font-medium text-slate-400 uppercase tracking-wide">Pelapor</dt>
+              <dt class="font-medium text-slate-400 uppercase tracking-wide text-[11px]">Pelapor</dt>
               <dd class="mt-1">
                 <div class="flex items-center gap-2">
-                  <div class="w-6 h-6 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-semibold shrink-0">
+                  <div class="w-6 h-6 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-[10px] font-semibold shrink-0">
                     {{ ticket.requester?.name?.charAt(0).toUpperCase() || '?' }}
                   </div>
                   <div class="min-w-0">
-                    <p class="text-sm font-medium text-slate-900 truncate">{{ ticket.requester?.name || '-' }}</p>
-                    <p class="text-xs text-slate-500 truncate">{{ ticket.requester?.email || '-' }}</p>
+                    <p class="font-medium text-slate-900 truncate">{{ ticket.requester?.name || '-' }}</p>
+                    <p class="text-[11px] text-slate-500 truncate">{{ ticket.requester?.email || '-' }}</p>
                   </div>
                 </div>
               </dd>
             </div>
 
-            <div class="pt-2 border-t border-slate-100">
-              <dt class="text-xs font-medium text-slate-400 uppercase tracking-wide">Waktu Dibuat</dt>
-              <dd class="text-sm text-slate-700 mt-1">
-                {{ formatDate(ticket.created_at) }} <span class="text-xs text-slate-400">({{ formatTime(ticket.created_at) }})</span>
+            <div class="sm:col-span-2 lg:col-span-1 pt-2 border-t border-slate-100">
+              <dt class="font-medium text-slate-400 uppercase tracking-wide text-[11px]">Waktu Dibuat</dt>
+              <dd class="text-slate-700 mt-0.5">
+                {{ formatDate(ticket.created_at) }} <span class="text-slate-400">· {{ formatTime(ticket.created_at) }}</span>
               </dd>
             </div>
           </dl>
