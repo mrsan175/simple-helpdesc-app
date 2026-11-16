@@ -111,13 +111,13 @@
             <div>
               <label class="label">Assignee</label>
               <select
-                v-if="isAgentOrAdmin"
+                v-if="auth.isAdmin"
                 :value="ticket.assignee_id || ''"
                 class="input mt-1"
                 @change="updateAssignee($event.target.value)"
               >
                 <option value="">Unassigned</option>
-                <option v-for="u in assigneeOptions" :key="u.id" :value="u.id">{{ u.name }}</option>
+                <option v-for="u in assignees" :key="u.id" :value="u.id">{{ u.name }}</option>
               </select>
               <p v-else class="text-sm text-slate-700 mt-1">
                 {{ ticket.assignee?.name || 'Belum di-assign' }}
@@ -127,7 +127,7 @@
             <div>
               <label class="label">Prioritas</label>
               <select
-                v-if="isAgentOrAdmin"
+                v-if="auth.isAdmin"
                 :value="ticket.priority"
                 class="input mt-1"
                 @change="updatePriority($event.target.value)"
@@ -201,20 +201,6 @@ const newComment = reactive({ body: '', is_internal: false })
 
 const isAgentOrAdmin = computed(() => auth.isAgent || auth.isAdmin)
 
-const assigneeOptions = computed(() => {
-  if (auth.isAdmin) {
-    return assignees.value
-  }
-  if (auth.isAgent) {
-    const list = []
-    if (auth.user) {
-      list.push({ id: auth.user.id, name: auth.user.name })
-    }
-    return list
-  }
-  return []
-})
-
 const availableActions = computed(() => {
   if (!ticket.value) return []
   const role = auth.user?.role
@@ -251,18 +237,10 @@ const fetchTicket = async () => {
 }
 
 const fetchAssignees = async () => {
-  if (auth.isAgent) {
-    assignees.value = auth.user ? [{ id: auth.user.id, name: auth.user.name }] : []
-    return
-  }
   if (!auth.isAdmin) return
   try {
     const res = await userService.list()
-    const list = (res.data || []).filter((u) => u.role === 'agent' || u.role === 'admin')
-    if (ticket.value?.assignee && !list.some((u) => u.id === ticket.value.assignee.id)) {
-      list.unshift(ticket.value.assignee)
-    }
-    assignees.value = list
+    assignees.value = (res.data || []).filter((u) => u.role === 'agent' || u.role === 'admin')
   } catch {
     assignees.value = []
   }

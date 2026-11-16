@@ -118,6 +118,9 @@ func TestValidStatusTransitions(t *testing.T) {
 	if updated.Status != domain.StatusInProgress {
 		t.Fatalf("expected in_progress, got %s", updated.Status)
 	}
+	if updated.AssigneeID == nil || *updated.AssigneeID != agent.ID {
+		t.Fatalf("expected auto-assign to agent %s, got %v", agent.ID, updated.AssigneeID)
+	}
 
 	resolved := domain.StatusResolved
 	updated, err = tickets.Update(ctx, agent, ticket.ID, domain.UpdateTicketReq{Status: &resolved})
@@ -233,5 +236,31 @@ func TestAgentCannotCreateTicket(t *testing.T) {
 	})
 	if !errors.Is(err, domain.ErrForbidden) {
 		t.Fatalf("expected ErrForbidden, got %v", err)
+	}
+}
+
+func TestAgentCannotChangePriorityOrAssignee(t *testing.T) {
+	_, tickets, _, ur, _, _ := newHarness()
+	ctx := context.Background()
+	requester, agent, _ := seedUsers(t, ur)
+
+	ticket, err := tickets.Create(ctx, requester, domain.CreateTicketReq{
+		Title:       "Locked fields",
+		Description: "agent cannot change priority/assignee",
+		Category:    "Hardware",
+		Priority:    domain.PriorityLow,
+	})
+	if err != nil {
+		t.Fatalf("create ticket: %v", err)
+	}
+
+	urgent := domain.PriorityUrgent
+	if _, err := tickets.Update(ctx, agent, ticket.ID, domain.UpdateTicketReq{Priority: &urgent}); !errors.Is(err, domain.ErrForbidden) {
+		t.Fatalf("agent priority change should be forbidden, got %v", err)
+	}
+
+	assigneeID := agent.ID
+	if _, err := tickets.Update(ctx, agent, ticket.ID, domain.UpdateTicketReq{AssigneeID: &assigneeID}); !errors.Is(err, domain.ErrForbidden) {
+		t.Fatalf("agent assignee change should be forbidden, got %v", err)
 	}
 }

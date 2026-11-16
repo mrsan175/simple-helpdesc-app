@@ -127,8 +127,8 @@ func (s *TicketService) Update(ctx context.Context, actor *domain.User, id strin
 		return nil, err
 	}
 
-	if actor.Role == domain.RoleRequester {
-		if ticket.RequesterID != actor.ID {
+	if actor.Role == domain.RoleRequester || actor.Role == domain.RoleAgent {
+		if actor.Role == domain.RoleRequester && ticket.RequesterID != actor.ID {
 			return nil, domain.ErrForbidden
 		}
 		if req.Priority != nil || req.AssigneeID != nil {
@@ -141,20 +141,17 @@ func (s *TicketService) Update(ctx context.Context, actor *domain.User, id strin
 			return nil, domain.ErrInvalidTransition
 		}
 		ticket.Status = *req.Status
+		if *req.Status == domain.StatusInProgress && actor.Role == domain.RoleAgent {
+			ticket.AssigneeID = &actor.ID
+			ticket.Assignee = actor
+		}
 	}
 
-	if req.Priority != nil && (actor.Role == domain.RoleAgent || actor.Role == domain.RoleAdmin) {
+	if req.Priority != nil && actor.Role == domain.RoleAdmin {
 		ticket.Priority = *req.Priority
 	}
 
-	if req.AssigneeID != nil && (actor.Role == domain.RoleAgent || actor.Role == domain.RoleAdmin) {
-		// Agent hanya boleh assign ke dirinya sendiri atau melepas assignee.
-		if actor.Role == domain.RoleAgent &&
-			*req.AssigneeID != "" &&
-			*req.AssigneeID != "unassigned" &&
-			*req.AssigneeID != actor.ID {
-			return nil, domain.ErrForbidden
-		}
+	if req.AssigneeID != nil && actor.Role == domain.RoleAdmin {
 		if *req.AssigneeID == "" || *req.AssigneeID == "unassigned" {
 			ticket.AssigneeID = nil
 			ticket.Assignee = nil
