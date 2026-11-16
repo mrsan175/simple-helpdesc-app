@@ -1,0 +1,68 @@
+{
+  "info": {
+    "name": "Simple Journey Helpdesk API",
+    "description": "Internal helpdesk system for PT Simple Journey Indonesia",
+    "schema": "https://schema.getpostman.com/json/collection/v2.2.1/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": { "Content-Type": "application/json" },
+            "url": "{{baseUrl}}/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"Test User\", \"email\": \"test@test.id\", \"password\": \"Password123!\"}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": { "Content-Type": "application/json" },
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"admin@simplejourney.id\", \"password\": \"Password123!\"}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tickets",
+      "item": [
+        {
+          "name": "List Tickets",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/tickets"
+          }
+        },
+        {
+          "name": "Create Ticket",
+          "request": {
+            "method": "POST",
+            "header": { "Content-Type": "application/json" },
+            "url": "{{baseUrl}}/tickets",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"Laptop cannot connect\", \"description\": \"Wi-Fi not working\", \"category\": \"Network\", \"priority\": \"high\"}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

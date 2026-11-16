@@ -1,0 +1,46 @@
+<template>
+  <span :class="['badge', badgeClasses]">
+    {{ label }}
+  </span>
+</template>
+
+<script setup>
+import { computed } from 'vue'
+
+const props = defineProps({
+  priority: {
+    type: String,
+    required: true
+  }
+})
+
+const label = computed(() => {
+  switch (props.priority) {
+    case 'low':
+      return 'Low'
+    case 'medium':
+      return 'Medium'
+    case 'high':
+      return 'High'
+    case 'urgent':
+      return 'Urgent'
+    default:
+      return props.priority
+  }
+})
+
+const badgeClasses = computed(() => {
+  switch (props.priority) {
+    case 'low':
+      return 'bg-slate-100 text-slate-600 border-slate-200'
+    case 'medium':
+      return 'bg-blue-50 text-blue-700 border-blue-200'
+    case 'high':
+      return 'bg-orange-50 text-orange-700 border-orange-200'
+    case 'urgent':
+      return 'bg-rose-50 text-rose-700 border-rose-200 font-semibold'
+    default:
+      return 'bg-slate-100 text-slate-600 border-slate-200'
+  }
+})
+</script>
