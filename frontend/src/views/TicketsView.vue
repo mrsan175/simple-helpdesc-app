@@ -91,12 +91,15 @@
     </EmptyState>
 
     <!-- Data Table -->
-    <div v-else class="card overflow-hidden">
+    <!-- Desktop Table -->
+    <div v-else class="card overflow-hidden hidden md:block">
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead class="border-b bg-slate-50">
             <tr>
-              <th class="text-left font-medium text-slate-600 px-4 py-3">Tiket</th>
+              <th class="text-left font-medium text-slate-600 px-4 py-3">ID</th>
+              <th class="text-left font-medium text-slate-600 px-4 py-3">Judul</th>
+              <th class="text-left font-medium text-slate-600 px-4 py-3">Kategori</th>
               <th v-if="!isRequester" class="text-left font-medium text-slate-600 px-4 py-3">Requester</th>
               <th class="text-left font-medium text-slate-600 px-4 py-3">Status</th>
               <th class="text-left font-medium text-slate-600 px-4 py-3">Prioritas</th>
@@ -112,17 +115,13 @@
               @click="$router.push(`/tickets/${ticket.id}`)"
             >
               <td class="px-4 py-3">
-                <div class="flex items-start gap-3">
-                  <span class="text-xs font-mono text-slate-400 pt-0.5">{{ ticket.id.slice(0, 8) }}</span>
-                  <div class="min-w-0">
-                    <p class="font-medium text-slate-900 truncate">{{ ticket.title }}</p>
-                    <p class="text-xs text-slate-500 mt-0.5">
-                      {{ ticket.category }}
-                      <span v-if="ticket.is_overdue" class="ml-2 text-rose-600 font-medium">● SLA Overdue</span>
-                    </p>
-                  </div>
-                </div>
+                <span class="text-xs font-mono text-slate-400">{{ ticket.id.slice(0, 8) }}</span>
               </td>
+              <td class="px-4 py-3 max-w-xs">
+                <p class="font-medium text-slate-900 truncate">{{ ticket.title }}</p>
+                <span v-if="ticket.is_overdue" class="text-xs text-rose-600 font-medium">● SLA Overdue</span>
+              </td>
+              <td class="px-4 py-3 text-slate-600 whitespace-nowrap">{{ ticket.category }}</td>
               <td v-if="!isRequester" class="px-4 py-3">
                 <div class="min-w-0">
                   <p class="font-medium text-slate-900 truncate">{{ ticket.requester?.name || '-' }}</p>
@@ -141,6 +140,45 @@
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- Mobile Card List -->
+    <div v-if="!loading && !error && tickets.length > 0" class="md:hidden space-y-3">
+      <div
+        v-for="ticket in tickets"
+        :key="ticket.id"
+        class="card p-4 cursor-pointer hover:bg-slate-50/80 transition-colors"
+        @click="$router.push(`/tickets/${ticket.id}`)"
+      >
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <p class="text-xs font-mono text-slate-400">{{ ticket.id.slice(0, 8) }}</p>
+            <p class="font-medium text-slate-900 mt-0.5">{{ ticket.title }}</p>
+            <p class="text-xs text-slate-500 mt-0.5">{{ ticket.category }}</p>
+          </div>
+          <PriorityBadge :priority="ticket.priority" />
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 mt-3">
+          <StatusBadge :status="ticket.status" />
+          <span v-if="ticket.is_overdue" class="text-xs text-rose-600 font-medium">● SLA Overdue</span>
+        </div>
+
+        <div class="mt-3 pt-3 border-t border-slate-100 space-y-1 text-xs text-slate-500">
+          <p v-if="!isRequester">
+            <span class="text-slate-400">Requester:</span>
+            {{ ticket.requester?.name || '-' }} · {{ ticket.requester?.email || '-' }}
+          </p>
+          <p>
+            <span class="text-slate-400">Assignee:</span>
+            {{ ticket.assignee?.name || 'Belum di-assign' }}
+          </p>
+          <p>
+            <span class="text-slate-400">Dibuat:</span>
+            {{ formatDate(ticket.created_at) }}
+          </p>
+        </div>
       </div>
     </div>
 

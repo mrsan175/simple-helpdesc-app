@@ -16,7 +16,7 @@
         <router-link
           to="/tickets"
           class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors"
-          :class="$route.name === 'tickets' || $route.name === 'ticket-detail' ? 'bg-slate-100 text-slate-900' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
+          :class="isTicketsActive ? 'bg-slate-100 text-slate-900 font-semibold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
         >
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 002 2 2 2 0 010 4 2 2 0 00-2 2v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 00-2-2 2 2 0 010-4 2 2 0 002-2V7a2 2 0 00-2-2H5z" />
@@ -28,7 +28,7 @@
           v-if="auth.isAdmin"
           to="/users"
           class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors"
-          :class="$route.name === 'users' ? 'bg-slate-100 text-slate-900' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
+          :class="isUsersActive ? 'bg-slate-100 text-slate-900 font-semibold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
         >
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -76,13 +76,18 @@
       <div>
         <div class="flex items-center justify-between mb-6 pb-4 border-b">
           <div class="font-bold text-slate-900">Simple Journey</div>
-          <button @click="mobileMenuOpen = false" class="text-slate-400 hover:text-slate-600">✕</button>
+          <button @click="mobileMenuOpen = false" class="text-slate-400 hover:text-slate-600" aria-label="Tutup menu">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
         <nav class="space-y-1">
           <router-link
             to="/tickets"
             @click="mobileMenuOpen = false"
-            class="block px-3 py-2 text-sm font-medium rounded-md text-slate-700 hover:bg-slate-100"
+            class="block px-3 py-2 text-sm font-medium rounded-md transition-colors"
+            :class="isTicketsActive ? 'bg-slate-100 text-slate-900 font-semibold' : 'text-slate-700 hover:bg-slate-100'"
           >
             Tiket
           </router-link>
@@ -90,7 +95,8 @@
             v-if="auth.isAdmin"
             to="/users"
             @click="mobileMenuOpen = false"
-            class="block px-3 py-2 text-sm font-medium rounded-md text-slate-700 hover:bg-slate-100"
+            class="block px-3 py-2 text-sm font-medium rounded-md transition-colors"
+            :class="isUsersActive ? 'bg-slate-100 text-slate-900 font-semibold' : 'text-slate-700 hover:bg-slate-100'"
           >
             Manajemen User
           </router-link>
@@ -116,13 +122,17 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 
 const auth = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 const mobileMenuOpen = ref(false)
+
+const isTicketsActive = computed(() => route.path.startsWith('/tickets'))
+const isUsersActive = computed(() => route.path.startsWith('/users'))
 
 const handleLogout = () => {
   auth.logout()
