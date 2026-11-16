@@ -17,7 +17,7 @@
             <div>
               <h1 class="text-xl font-semibold text-slate-900">{{ ticket.title }}</h1>
               <p class="text-sm text-slate-500 mt-1">
-                Dibuat oleh {{ ticket.requester?.name || '-' }} • {{ formatDate(ticket.created_at) }}
+                Dibuat oleh {{ ticket.requester?.name || '-' }} • {{ formatDate(ticket.created_at) }} {{ formatTime(ticket.created_at) }}
               </p>
             </div>
             <div class="flex flex-col items-end gap-2 shrink-0">
@@ -54,7 +54,7 @@
                     v-if="comment.is_internal"
                     class="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200"
                   >
-                    Internal Note (Agent & Admin Only)
+                    Internal Note
                   </span>
                 </div>
                 <span class="text-xs text-slate-400">{{ formatDate(comment.created_at) }}</span>
@@ -64,7 +64,7 @@
           </div>
 
           <div class="mt-6 pt-4 border-t border-slate-100">
-            <label for="comment" class="label">Tulis Balasan <span class="text-rose-500">*</span></label>
+            <label for="comment" class="label">Tulis Balasan</label>
             <textarea
               id="comment"
               v-model="newComment.body"
@@ -87,8 +87,9 @@
 
       <!-- Right column: controls -->
       <div class="space-y-6">
-        <div class="card p-6">
-          <h2 class="text-sm font-semibold text-slate-900 uppercase tracking-wide mb-4">Aksi Status</h2>
+        <!-- Aksi Status: hanya muncul jika ada aksi yang dapat dilakukan -->
+        <div v-if="availableActions.length > 0" class="card p-6">
+          <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Aksi Status</h2>
           <div class="space-y-2">
             <button
               v-for="action in availableActions"
@@ -98,60 +99,106 @@
             >
               {{ action.label }}
             </button>
-            <p v-if="availableActions.length === 0" class="text-sm text-slate-500">
-              Tidak ada aksi status yang tersedia untuk peran Anda.
-            </p>
           </div>
         </div>
 
+        <!-- Properti Tiket -->
         <div class="card p-6">
-          <h2 class="text-sm font-semibold text-slate-900 uppercase tracking-wide mb-4">Properti Tiket</h2>
+          <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100">
+            Properti Tiket
+          </h2>
 
-          <div class="space-y-4">
+          <dl class="space-y-4">
             <div>
-              <label class="label">Assignee</label>
-              <select
-                v-if="auth.isAdmin"
-                :value="ticket.assignee_id || ''"
-                class="input mt-1"
-                @change="updateAssignee($event.target.value)"
-              >
-                <option value="">Unassigned</option>
-                <option v-for="u in assignees" :key="u.id" :value="u.id">{{ u.name }}</option>
-              </select>
-              <p v-else class="text-sm text-slate-700 mt-1">
-                {{ ticket.assignee?.name || 'Belum di-assign' }}
-              </p>
+              <dt class="text-xs font-medium text-slate-400 uppercase tracking-wide">ID Tiket</dt>
+              <dd class="mt-1">
+                <span class="inline-block text-xs font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded break-all">
+                  {{ ticket.id }}
+                </span>
+              </dd>
             </div>
 
             <div>
-              <label class="label">Prioritas</label>
-              <select
-                v-if="auth.isAdmin"
-                :value="ticket.priority"
-                class="input mt-1"
-                @change="updatePriority($event.target.value)"
-              >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
-              </select>
-              <div v-else class="mt-1">
-                <PriorityBadge :priority="ticket.priority" />
-              </div>
+              <dt class="text-xs font-medium text-slate-400 uppercase tracking-wide">Status</dt>
+              <dd class="mt-1">
+                <StatusBadge :status="ticket.status" />
+              </dd>
             </div>
 
             <div>
-              <label class="label">Kategori</label>
-              <p class="text-sm text-slate-700 mt-1">{{ ticket.category }}</p>
+              <dt class="text-xs font-medium text-slate-400 uppercase tracking-wide">Prioritas</dt>
+              <dd class="mt-1">
+                <select
+                  v-if="auth.isAdmin"
+                  :value="ticket.priority"
+                  class="input text-sm py-1.5"
+                  @change="updatePriority($event.target.value)"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+                <PriorityBadge v-else :priority="ticket.priority" />
+              </dd>
             </div>
 
             <div>
-              <label class="label">Requester</label>
-              <p class="text-sm text-slate-700 mt-1">{{ ticket.requester?.name || '-' }}</p>
+              <dt class="text-xs font-medium text-slate-400 uppercase tracking-wide">Assignee</dt>
+              <dd class="mt-1">
+                <select
+                  v-if="auth.isAdmin"
+                  :value="ticket.assignee_id || ''"
+                  class="input text-sm py-1.5"
+                  @change="updateAssignee($event.target.value)"
+                >
+                  <option value="">Unassigned</option>
+                  <option v-for="u in assignees" :key="u.id" :value="u.id">{{ u.name }}</option>
+                </select>
+                <div v-else-if="ticket.assignee" class="flex items-center gap-2">
+                  <div class="w-6 h-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-semibold shrink-0">
+                    {{ ticket.assignee.name.charAt(0).toUpperCase() }}
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-sm font-medium text-slate-900 truncate">{{ ticket.assignee.name }}</p>
+                    <p class="text-xs text-slate-500 truncate">{{ ticket.assignee.email }}</p>
+                  </div>
+                </div>
+                <span v-else class="text-sm text-slate-400 italic">Belum di-assign</span>
+              </dd>
             </div>
-          </div>
+
+            <div>
+              <dt class="text-xs font-medium text-slate-400 uppercase tracking-wide">Kategori</dt>
+              <dd class="mt-1">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                  {{ ticket.category }}
+                </span>
+              </dd>
+            </div>
+
+            <div>
+              <dt class="text-xs font-medium text-slate-400 uppercase tracking-wide">Requester</dt>
+              <dd class="mt-1">
+                <div class="flex items-center gap-2">
+                  <div class="w-6 h-6 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-semibold shrink-0">
+                    {{ ticket.requester?.name?.charAt(0).toUpperCase() || '?' }}
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-sm font-medium text-slate-900 truncate">{{ ticket.requester?.name || '-' }}</p>
+                    <p class="text-xs text-slate-500 truncate">{{ ticket.requester?.email || '-' }}</p>
+                  </div>
+                </div>
+              </dd>
+            </div>
+
+            <div class="pt-2 border-t border-slate-100">
+              <dt class="text-xs font-medium text-slate-400 uppercase tracking-wide">Waktu Dibuat</dt>
+              <dd class="text-sm text-slate-700 mt-1">
+                {{ formatDate(ticket.created_at) }} <span class="text-xs text-slate-400">({{ formatTime(ticket.created_at) }})</span>
+              </dd>
+            </div>
+          </dl>
         </div>
       </div>
     </div>
@@ -327,13 +374,12 @@ const showToast = (message, type = 'success') => {
 
 const formatDate = (value) => {
   if (!value) return '-'
-  return new Date(value).toLocaleDateString('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+  return new Date(value).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+const formatTime = (value) => {
+  if (!value) return '-'
+  return new Date(value).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
 }
 
 onMounted(async () => {
