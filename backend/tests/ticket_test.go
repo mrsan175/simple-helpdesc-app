@@ -246,7 +246,7 @@ func TestAgentCannotChangePriorityOrAssignee(t *testing.T) {
 
 	ticket, err := tickets.Create(ctx, requester, domain.CreateTicketReq{
 		Title:       "Locked fields",
-		Description: "agent cannot change priority/assignee",
+		Description: "agent cannot change assignee",
 		Category:    "Hardware",
 		Priority:    domain.PriorityLow,
 	})
@@ -254,13 +254,34 @@ func TestAgentCannotChangePriorityOrAssignee(t *testing.T) {
 		t.Fatalf("create ticket: %v", err)
 	}
 
+	// Agent tidak di-assign: prioritas dilarang
 	urgent := domain.PriorityUrgent
 	if _, err := tickets.Update(ctx, agent, ticket.ID, domain.UpdateTicketReq{Priority: &urgent}); !errors.Is(err, domain.ErrForbidden) {
-		t.Fatalf("agent priority change should be forbidden, got %v", err)
+		t.Fatalf("agent priority change on unassigned ticket should be forbidden, got %v", err)
 	}
 
-	assigneeID := agent.ID
-	if _, err := tickets.Update(ctx, agent, ticket.ID, domain.UpdateTicketReq{AssigneeID: &assigneeID}); !errors.Is(err, domain.ErrForbidden) {
+	// Agent memproses tiket: open -> in_progress (auto-assign ke agent)
+	inProgress := domain.StatusInProgress
+	updated, err := tickets.Update(ctx, agent, ticket.ID, domain.UpdateTicketReq{Status: &inProgress})
+	if err != nil {
+		t.Fatalf("agent open -> in_progress should succeed: %v", err)
+	}
+	if updated.AssigneeID == nil || *updated.AssigneeID != agent.ID {
+		t.Fatalf("expected auto-assigned to agent, got %v", updated.AssigneeID)
+	}
+
+	// Agent tidak boleh mengubah assignee (misal ke user lain atau unassigned)
+	unassigned := "unassigned"
+	if _, err := tickets.Update(ctx, agent, ticket.ID, domain.UpdateTicketReq{AssigneeID: &unassigned}); !errors.Is(err, domain.ErrForbidden) {
 		t.Fatalf("agent assignee change should be forbidden, got %v", err)
+	}
+
+	// Agent yang sedang mengerjakan tiket BOLEH ubah prioritas
+	updated, err = tickets.Update(ctx, agent, ticket.ID, domain.UpdateTicketReq{Priority: &urgent})
+	if err != nil {
+		t.Fatalf("assigned agent should be allowed to change priority: %v", err)
+	}
+	if updated.Priority != domain.PriorityUrgent {
+		t.Fatalf("expected priority urgent, got %s", updated.Priority)
 	}
 }

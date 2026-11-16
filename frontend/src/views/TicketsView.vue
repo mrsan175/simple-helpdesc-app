@@ -98,11 +98,11 @@
           <thead class="border-b bg-slate-50">
             <tr>
               <th class="text-left font-medium text-slate-600 px-4 py-3">ID</th>
-              <th class="text-left font-medium text-slate-600 px-4 py-3">Tiket</th>
-              <th v-if="!isRequester" class="text-left font-medium text-slate-600 px-4 py-3">Requester</th>
+              <th class="text-left font-medium text-slate-600 px-4 py-3">Keterangan</th>
+              <th v-if="!isRequester" class="text-left font-medium text-slate-600 px-4 py-3">Pelapor</th>
               <th class="text-left font-medium text-slate-600 px-4 py-3">Status</th>
               <th class="text-left font-medium text-slate-600 px-4 py-3">Prioritas</th>
-              <th class="text-left font-medium text-slate-600 px-4 py-3">Assignee</th>
+              <th class="text-left font-medium text-slate-600 px-4 py-3">Ditangani Oleh</th>
               <th class="text-left font-medium text-slate-600 px-4 py-3">Dibuat</th>
             </tr>
           </thead>
@@ -133,7 +133,7 @@
               <td class="px-4 py-3"><PriorityBadge :priority="ticket.priority" /></td>
               <td class="px-4 py-3 text-slate-600">
                 <span v-if="ticket.assignee">{{ ticket.assignee.name }}</span>
-                <span v-else class="text-slate-400">Belum di-assign</span>
+                <span v-else class="text-slate-400">Belum di-tangani</span>
               </td>
               <td class="px-4 py-3 text-slate-500 whitespace-nowrap">
                 <p>{{ formatDate(ticket.created_at) }}</p>
@@ -160,21 +160,22 @@
             <p class="text-xs text-slate-500 mt-0.5">{{ ticket.category }}</p>
           </div>
           <PriorityBadge :priority="ticket.priority" />
-        </div>
-
         <div class="flex flex-wrap items-center gap-2 mt-3">
           <StatusBadge :status="ticket.status" />
           <span v-if="ticket.is_overdue" class="text-xs text-rose-600 font-medium">● SLA Overdue</span>
         </div>
+        </div>
+
+     
 
         <div class="mt-3 pt-3 border-t border-slate-100 space-y-1 text-xs text-slate-500">
           <p v-if="!isRequester">
-            <span class="text-slate-400">Requester:</span>
+            <span class="text-slate-400">Pelapor:</span>
             {{ ticket.requester?.name || '-' }} · {{ ticket.requester?.email || '-' }}
           </p>
           <p>
-            <span class="text-slate-400">Assignee:</span>
-            {{ ticket.assignee?.name || 'Belum di-assign' }}
+            <span class="text-slate-400">Ditangani Oleh:</span>
+            {{ ticket.assignee?.name || 'Belum di-tangani' }}
           </p>
           <p>
             <span class="text-slate-400">Dibuat:</span>

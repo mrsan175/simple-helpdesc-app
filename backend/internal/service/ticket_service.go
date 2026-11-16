@@ -127,11 +127,22 @@ func (s *TicketService) Update(ctx context.Context, actor *domain.User, id strin
 		return nil, err
 	}
 
-	if actor.Role == domain.RoleRequester || actor.Role == domain.RoleAgent {
-		if actor.Role == domain.RoleRequester && ticket.RequesterID != actor.ID {
+	if actor.Role == domain.RoleRequester {
+		if ticket.RequesterID != actor.ID {
 			return nil, domain.ErrForbidden
 		}
 		if req.Priority != nil || req.AssigneeID != nil {
+			return nil, domain.ErrForbidden
+		}
+	}
+
+	if actor.Role == domain.RoleAgent {
+		// Agent tidak boleh mengubah assignee sama sekali.
+		if req.AssigneeID != nil {
+			return nil, domain.ErrForbidden
+		}
+		// Agent hanya boleh mengubah prioritas tiket yang sedang dikerjakannya.
+		if req.Priority != nil && (ticket.AssigneeID == nil || *ticket.AssigneeID != actor.ID) {
 			return nil, domain.ErrForbidden
 		}
 	}
@@ -147,7 +158,7 @@ func (s *TicketService) Update(ctx context.Context, actor *domain.User, id strin
 		}
 	}
 
-	if req.Priority != nil && actor.Role == domain.RoleAdmin {
+	if req.Priority != nil && (actor.Role == domain.RoleAdmin || actor.Role == domain.RoleAgent) {
 		ticket.Priority = *req.Priority
 	}
 

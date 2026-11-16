@@ -105,7 +105,7 @@
         <!-- Properti Tiket -->
         <div class="card p-6">
           <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100">
-            Properti Tiket
+            Keterangan Tiket
           </h2>
 
           <dl class="space-y-4">
@@ -129,7 +129,7 @@
               <dt class="text-xs font-medium text-slate-400 uppercase tracking-wide">Prioritas</dt>
               <dd class="mt-1">
                 <select
-                  v-if="auth.isAdmin"
+                  v-if="canEditPriority"
                   :value="ticket.priority"
                   class="input text-sm py-1.5"
                   @change="updatePriority($event.target.value)"
@@ -144,7 +144,7 @@
             </div>
 
             <div>
-              <dt class="text-xs font-medium text-slate-400 uppercase tracking-wide">Assignee</dt>
+              <dt class="text-xs font-medium text-slate-400 uppercase tracking-wide">Ditangani Oleh</dt>
               <dd class="mt-1">
                 <select
                   v-if="auth.isAdmin"
@@ -164,7 +164,7 @@
                     <p class="text-xs text-slate-500 truncate">{{ ticket.assignee.email }}</p>
                   </div>
                 </div>
-                <span v-else class="text-sm text-slate-400 italic">Belum di-assign</span>
+                <span v-else class="text-sm text-slate-400 italic">Belum di-tangani</span>
               </dd>
             </div>
 
@@ -178,7 +178,7 @@
             </div>
 
             <div>
-              <dt class="text-xs font-medium text-slate-400 uppercase tracking-wide">Requester</dt>
+              <dt class="text-xs font-medium text-slate-400 uppercase tracking-wide">Pelapor</dt>
               <dd class="mt-1">
                 <div class="flex items-center gap-2">
                   <div class="w-6 h-6 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-semibold shrink-0">
@@ -247,6 +247,13 @@ const pendingAction = ref(null)
 const newComment = reactive({ body: '', is_internal: false })
 
 const isAgentOrAdmin = computed(() => auth.isAgent || auth.isAdmin)
+
+// Admin selalu bisa ubah prioritas; agent hanya untuk tiket yang di-assign ke dirinya.
+const canEditPriority = computed(() => {
+  if (auth.isAdmin) return true
+  if (auth.isAgent) return Boolean(ticket.value?.assignee_id && ticket.value.assignee_id === auth.user?.id)
+  return false
+})
 
 const availableActions = computed(() => {
   if (!ticket.value) return []
