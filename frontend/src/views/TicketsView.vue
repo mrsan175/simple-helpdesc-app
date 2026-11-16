@@ -136,7 +136,8 @@
                 <span v-else class="text-slate-400">Belum di-assign</span>
               </td>
               <td class="px-4 py-3 text-slate-500 whitespace-nowrap">
-                {{ formatDate(ticket.created_at) }}
+                <p>{{ formatDate(ticket.created_at) }}</p>
+                <p class="text-xs text-slate-400">{{ formatTime(ticket.created_at) }}</p>
               </td>
             </tr>
           </tbody>
@@ -177,7 +178,7 @@
           </p>
           <p>
             <span class="text-slate-400">Dibuat:</span>
-            {{ formatDate(ticket.created_at) }}
+            {{ formatDate(ticket.created_at) }} · {{ formatTime(ticket.created_at) }}
           </p>
         </div>
       </div>
@@ -336,13 +337,12 @@ const showToast = (message, type = 'success') => {
 
 const formatDate = (value) => {
   if (!value) return '-'
-  return new Date(value).toLocaleDateString('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+  return new Date(value).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+const formatTime = (value) => {
+  if (!value) return '-'
+  return new Date(value).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
 }
 
 onMounted(async () => {

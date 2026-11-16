@@ -46,7 +46,10 @@
                   <option value="admin">Admin</option>
                 </select>
               </td>
-              <td class="px-4 py-3 text-slate-500">{{ formatDate(u.created_at) }}</td>
+              <td class="px-4 py-3 text-slate-500 whitespace-nowrap">
+                <p>{{ formatDate(u.created_at) }}</p>
+                <p class="text-xs text-slate-400">{{ formatTime(u.created_at) }}</p>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -115,13 +118,12 @@ const showToast = (message, type = 'success') => {
 
 const formatDate = (value) => {
   if (!value) return '-'
-  return new Date(value).toLocaleDateString('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+  return new Date(value).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+const formatTime = (value) => {
+  if (!value) return '-'
+  return new Date(value).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
 }
 
 onMounted(fetchUsers)
