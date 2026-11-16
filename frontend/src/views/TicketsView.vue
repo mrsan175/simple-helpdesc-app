@@ -97,7 +97,7 @@
           <thead class="border-b bg-slate-50">
             <tr>
               <th class="text-left font-medium text-slate-500 px-3 py-2">ID</th>
-              <th class="text-left font-medium text-slate-500 px-3 py-2">Keterangan</th>
+              <th class="text-left font-medium text-slate-500 px-3 py-2" title="Klik baris untuk melihat deskripsi">Keterangan ⤢</th>
               <th v-if="!isRequester" class="text-left font-medium text-slate-500 px-3 py-2">Pelapor</th>
               <th class="text-left font-medium text-slate-500 px-3 py-2">Status</th>
               <th class="text-left font-medium text-slate-500 px-3 py-2">Prioritas</th>
@@ -106,37 +106,66 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
-            <tr
-              v-for="ticket in tickets"
-              :key="ticket.id"
-              class="hover:bg-slate-50/80 cursor-pointer transition-colors"
-              @click="$router.push(`/tickets/${ticket.id}`)"
-            >
-              <td class="px-3 py-2 align-top">
-                <span class="font-mono text-[11px] text-slate-400">{{ ticket.id.slice(0, 8) }}</span>
-              </td>
-              <td class="px-3 py-2 align-top max-w-[22rem]">
-                <p class="font-medium text-slate-900 leading-snug truncate">{{ ticket.title }}</p>
-                <p class="text-[11px] text-slate-500 mt-0.5">
-                  {{ ticket.category }}
-                  <span v-if="ticket.is_overdue" class="ml-1.5 text-rose-600 font-medium">● SLA</span>
-                </p>
-              </td>
-              <td v-if="!isRequester" class="px-3 py-2 align-top">
-                <p class="font-medium text-slate-900 leading-tight truncate max-w-[12rem]">{{ ticket.requester?.name || '-' }}</p>
-                <p class="text-[11px] text-slate-500 truncate max-w-[12rem]">{{ ticket.requester?.email || '-' }}</p>
-              </td>
-              <td class="px-3 py-2 align-top whitespace-nowrap"><StatusBadge :status="ticket.status" /></td>
-              <td class="px-3 py-2 align-top whitespace-nowrap"><PriorityBadge :priority="ticket.priority" /></td>
-              <td class="px-3 py-2 align-top text-slate-600 whitespace-nowrap">
-                <span v-if="ticket.assignee">{{ ticket.assignee.name }}</span>
-                <span v-else class="text-slate-400 italic">Belum di-tangani</span>
-              </td>
-              <td class="px-3 py-2 align-top text-slate-500 whitespace-nowrap">
-                <p>{{ formatDate(ticket.created_at) }}</p>
-                <p class="text-[11px] text-slate-400">{{ formatTime(ticket.created_at) }}</p>
-              </td>
-            </tr>
+            <template v-for="ticket in tickets" :key="ticket.id">
+              <tr
+                class="hover:bg-slate-50/80 cursor-pointer transition-colors"
+                @click="toggleExpand(ticket.id)"
+              >
+                <td class="px-3 py-2 align-top">
+                  <span class="font-mono text-[11px] text-slate-400">{{ ticket.id.slice(0, 8) }}</span>
+                </td>
+                <td class="px-3 py-2 align-top max-w-[22rem]">
+                  <div class="flex items-start gap-1.5">
+                    <svg
+                      class="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5 transition-transform"
+                      :class="isExpanded(ticket.id) ? 'rotate-90' : ''"
+                      fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                    >
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                    <div class="min-w-0">
+                      <p class="font-medium text-slate-900 leading-snug truncate">{{ ticket.title }}</p>
+                      <p class="text-[11px] text-slate-500 mt-0.5">
+                        {{ ticket.category }}
+                        <span v-if="ticket.is_overdue" class="ml-1.5 text-rose-600 font-medium">● SLA</span>
+                      </p>
+                    </div>
+                  </div>
+                </td>
+                <td v-if="!isRequester" class="px-3 py-2 align-top">
+                  <p class="font-medium text-slate-900 leading-tight truncate max-w-[12rem]">{{ ticket.requester?.name || '-' }}</p>
+                  <p class="text-[11px] text-slate-500 truncate max-w-[12rem]">{{ ticket.requester?.email || '-' }}</p>
+                </td>
+                <td class="px-3 py-2 align-top whitespace-nowrap"><StatusBadge :status="ticket.status" /></td>
+                <td class="px-3 py-2 align-top whitespace-nowrap"><PriorityBadge :priority="ticket.priority" /></td>
+                <td class="px-3 py-2 align-top text-slate-600 whitespace-nowrap">
+                  <span v-if="ticket.assignee">{{ ticket.assignee.name }}</span>
+                  <span v-else class="text-slate-400 italic">Belum di-tangani</span>
+                </td>
+                <td class="px-3 py-2 align-top text-slate-500 whitespace-nowrap">
+                  <p>{{ formatDate(ticket.created_at) }}</p>
+                  <p class="text-[11px] text-slate-400">{{ formatTime(ticket.created_at) }}</p>
+                </td>
+              </tr>
+              <tr v-if="isExpanded(ticket.id)" class="bg-slate-50/70">
+                <td :colspan="isRequester ? 6 : 7" class="px-3 sm:px-4 py-3 border-t border-slate-100">
+                  <div class="flex items-start justify-between gap-4">
+                    <div class="min-w-0">
+                      <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Deskripsi</p>
+                      <p class="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed break-words">
+                        {{ ticket.description || '-' }}
+                      </p>
+                    </div>
+                    <button
+                      class="btn btn-outline btn-sm shrink-0"
+                      @click.stop="$router.push(`/tickets/${ticket.id}`)"
+                    >
+                      Buka Detail →
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </template>
           </tbody>
         </table>
       </div>
@@ -148,7 +177,7 @@
         v-for="ticket in tickets"
         :key="ticket.id"
         class="card p-3 cursor-pointer hover:bg-slate-50/80 transition-colors"
-        @click="$router.push(`/tickets/${ticket.id}`)"
+        @click="toggleExpand(ticket.id)"
       >
         <div class="flex items-start justify-between gap-2">
           <div class="min-w-0 flex-1">
@@ -165,6 +194,24 @@
             <StatusBadge :status="ticket.status" />
             <PriorityBadge :priority="ticket.priority" />
           </div>
+        </div>
+
+        <!-- Expandable description -->
+        <div
+          v-if="isExpanded(ticket.id)"
+          class="mt-2 pt-2 border-t border-slate-100"
+          @click.stop
+        >
+          <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Deskripsi</p>
+          <p class="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed break-words">
+            {{ ticket.description || '-' }}
+          </p>
+          <router-link
+            :to="`/tickets/${ticket.id}`"
+            class="btn btn-outline btn-sm mt-2.5 inline-flex items-center"
+          >
+            Buka Detail →
+          </router-link>
         </div>
 
         <div class="mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-slate-500">
@@ -240,6 +287,19 @@ const error = ref('')
 const stats = ref(null)
 const assignees = ref([])
 const toast = reactive({ message: '', type: 'success', visible: false })
+const expandedTickets = ref(new Set())
+
+const toggleExpand = (id) => {
+  const next = new Set(expandedTickets.value)
+  if (next.has(id)) {
+    next.delete(id)
+  } else {
+    next.add(id)
+  }
+  expandedTickets.value = next
+}
+
+const isExpanded = (id) => expandedTickets.value.has(id)
 
 const filters = reactive({
   search: '',

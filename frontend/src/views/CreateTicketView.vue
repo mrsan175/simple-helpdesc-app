@@ -1,12 +1,12 @@
 <template>
-  <div class="max-w-2xl mx-auto space-y-6">
+  <div class="w-full space-y-6">
     <div class="flex items-center justify-between">
       <button class="btn btn-outline btn-sm" @click="$router.back()">← Kembali</button>
       <h1 class="text-xl font-bold text-slate-900">Buat Tiket Baru</h1>
       <div class="w-16"></div>
     </div>
 
-    <div class="card p-6">
+    <div class="card p-4 sm:p-6">
       <form @submit.prevent="handleSubmit" class="space-y-4">
         <div class="space-y-1.5">
           <label for="title" class="label">Judul Tiket <span class="text-rose-500">*</span></label>
