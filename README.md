@@ -7,10 +7,16 @@ Aplikasi web helpdesk internal modern untuk manajemen tiket dukungan TI dan oper
 ## 1. Tech Stack
 
 - **Monorepo:** Berisi service `backend/` dan `frontend/` dalam satu repository.
-- **Backend:** Go 1.22+ (Gin framework, Clean Layered Architecture: `handler` → `service` → `repository` → `domain`).
-- **Frontend:** Vue 3 (Composition API `<script setup>`), Vite, Pinia, Vue Router, Tailwind CSS.
+- **Backend:** Go 1.22 (build image `golang:1.23-alpine`), Gin v1.10, Clean Layered Architecture (`handler` → `service` → `repository` → `domain`).
+  - Auth: JWT (`golang-jwt/jwt/v5`), bcrypt, middleware `Authorization: Bearer`.
+  - Data: PostgreSQL (`lib/pq`), migrasi SQL + seeder otomatis (`SEED_ON_START=true`).
+  - Validasi: `go-playground/validator/v10`; konfigurasi: `godotenv`.
+- **Frontend:** Vue 3.5 (Composition API `<script setup>`), Vite 5, Vue Router 4 (navigation guards), Pinia 2 (stores: `auth`, `settings`), Axios 1.7 (interceptor 401), Tailwind CSS 3.4 (`darkMode: 'class'`).
+  - **i18n:** module lokal `src/i18n/index.js` (kamus ID/EN + `useI18n()` / `t(key)`), mencakup seluruh UI — bukan hanya chrome.
+  - **Theme:** mode gelap/terang via toko Pinia `stores/settings.js`, persisten di `localStorage`, diterapkan sebelum paint pertama (`index.html` inline script) + `src/dark.css` untuk remap global utilitas Tailwind.
+  - **Toolbar atas (navbar):** tombol fullscreen, switch bahasa ID/EN, switch tema, info user — sticky di atas sidebar & konten.
 - **Database:** PostgreSQL 16 (Container port host `5433:5432`).
-- **Containerization:** Docker multi-stage build + `docker-compose`.
+- **Containerization:** Docker multi-stage build (Go distroless-like alpine, Node 20 build → Nginx 1.27 serve) + `docker-compose`.
 
 ---
 
