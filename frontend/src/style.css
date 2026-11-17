@@ -52,20 +52,41 @@
 }
 
 .dark .card {
-  @apply bg-slate-900 border-slate-800;
+  background-color: #0f172a;
+  border-color: #1e293b;
 }
 .dark .input {
-  @apply bg-slate-900 border-slate-700 text-slate-100 placeholder:text-slate-500;
+  background-color: #0f172a;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+.dark .input::placeholder {
+  color: #64748b;
 }
 .dark .label {
-  @apply text-slate-300;
+  color: #cbd5e1;
 }
 .dark .btn-primary {
-  @apply bg-slate-100 text-slate-900 hover:bg-white;
+  background-color: #f1f5f9;
+  color: #0f172a;
+  border-color: #f1f5f9;
+}
+.dark .btn-primary:hover {
+  background-color: #ffffff;
 }
 .dark .btn-outline {
-  @apply border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800;
+  background-color: #0f172a;
+  color: #e2e8f0;
+  border-color: #334155;
+}
+.dark .btn-outline:hover {
+  background-color: #1e293b;
 }
 .dark .btn-destructive {
-  @apply bg-rose-600 text-white hover:bg-rose-700;
+  background-color: #e11d48;
+  color: #ffffff;
 }
+.dark .btn-destructive:hover {
+  background-color: #be123c;
+}
+

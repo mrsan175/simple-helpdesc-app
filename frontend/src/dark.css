@@ -1,0 +1,136 @@
+/* Dark theme: remap utility classes globally so every component follows the theme. */
+.dark .bg-white,
+.dark .bg-white\/80 {
+  background-color: #0f172a;
+}
+.dark .bg-slate-50,
+.dark .bg-slate-50\/50,
+.dark .bg-slate-50\/60,
+.dark .bg-slate-50\/70,
+.dark .bg-slate-50\/80,
+.dark .bg-slate-100,
+.dark .bg-slate-100\/60 {
+  background-color: #1e293b;
+}
+.dark .bg-slate-200 {
+  background-color: #334155;
+}
+.dark .bg-slate-700 {
+  background-color: #334155;
+}
+.dark .hover\:bg-slate-50:hover,
+.dark .hover\:bg-slate-50\/60:hover,
+.dark .hover\:bg-slate-50\/80:hover,
+.dark .hover\:bg-slate-100:hover,
+.dark .hover\:bg-slate-800:hover,
+.dark .hover\:bg-slate-800\/40:hover {
+  background-color: #1e293b;
+}
+
+.dark .text-slate-900,
+.dark .text-slate-800 {
+  color: #f1f5f9;
+}
+.dark .text-slate-700 {
+  color: #cbd5e1;
+}
+.dark .text-slate-600 {
+  color: #94a3b8;
+}
+.dark .text-slate-500 {
+  color: #94a3b8;
+}
+.dark .text-slate-400 {
+  color: #94a3b8;
+}
+.dark .hover\:text-slate-900:hover,
+.dark .hover\:text-slate-100:hover {
+  color: #f1f5f9;
+}
+
+.dark .border-slate-100,
+.dark .border-slate-200 {
+  border-color: #1e293b;
+}
+.dark .border-slate-300 {
+  border-color: #334155;
+}
+.dark .border-slate-700 {
+  border-color: #334155;
+}
+.dark .border-slate-800 {
+  border-color: #1e293b;
+}
+.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #1e293b;
+}
+
+/* Status / priority badge palettes in dark mode */
+.dark .bg-sky-50 {
+  background-color: rgba(14, 165, 233, 0.15);
+}
+.dark .text-sky-700 {
+  color: #7dd3fc;
+}
+.dark .border-sky-200 {
+  border-color: #075985;
+}
+
+.dark .bg-amber-50,
+.dark .bg-amber-50\/70,
+.dark .bg-amber-100 {
+  background-color: rgba(245, 158, 11, 0.15);
+}
+.dark .text-amber-700,
+.dark .text-amber-800 {
+  color: #fcd34d;
+}
+.dark .border-amber-200 {
+  border-color: #92400e;
+}
+
+.dark .bg-emerald-50 {
+  background-color: rgba(16, 185, 129, 0.15);
+}
+.dark .text-emerald-700,
+.dark .text-emerald-800 {
+  color: #6ee7b7;
+}
+.dark .border-emerald-200 {
+  border-color: #065f46;
+}
+
+.dark .bg-blue-50 {
+  background-color: rgba(59, 130, 246, 0.15);
+}
+.dark .text-blue-700 {
+  color: #93c5fd;
+}
+.dark .border-blue-200 {
+  border-color: #1e40af;
+}
+
+.dark .bg-orange-50 {
+  background-color: rgba(249, 115, 22, 0.15);
+}
+.dark .text-orange-700 {
+  color: #fdba74;
+}
+.dark .border-orange-200 {
+  border-color: #9a3412;
+}
+
+.dark .bg-rose-50 {
+  background-color: rgba(244, 63, 94, 0.15);
+}
+.dark .text-rose-700,
+.dark .text-rose-800 {
+  color: #fda4af;
+}
+.dark .border-rose-200,
+.dark .border-rose-300 {
+  border-color: #9f1239;
+}
+.dark .hover\:bg-rose-50:hover {
+  background-color: rgba(244, 63, 94, 0.2);
+}
