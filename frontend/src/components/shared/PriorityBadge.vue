@@ -32,7 +32,7 @@ const label = computed(() => {
 const badgeClasses = computed(() => {
   switch (props.priority) {
     case 'low':
-      return 'bg-slate-100 text-slate-600 border-slate-200'
+      return 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800'
     case 'medium':
       return 'bg-blue-50 text-blue-700 border-blue-200'
     case 'high':
@@ -40,7 +40,7 @@ const badgeClasses = computed(() => {
     case 'urgent':
       return 'bg-rose-50 text-rose-700 border-rose-200 font-semibold'
     default:
-      return 'bg-slate-100 text-slate-600 border-slate-200'
+      return 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800'
   }
 })
 </script>
