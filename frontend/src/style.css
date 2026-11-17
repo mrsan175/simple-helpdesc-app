@@ -23,22 +23,22 @@
 
 @layer components {
   .card {
-    @apply rounded-lg border bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900;
+    @apply rounded-lg border bg-white shadow-sm;
   }
   .input {
-    @apply flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500;
+    @apply flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 disabled:cursor-not-allowed disabled:opacity-50;
   }
   .label {
-    @apply text-sm font-medium leading-none text-slate-700 dark:text-slate-300;
+    @apply text-sm font-medium leading-none text-slate-700;
   }
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20 disabled:pointer-events-none disabled:opacity-50;
   }
   .btn-primary {
-    @apply btn bg-slate-900 text-white hover:bg-slate-800 h-10 px-4 py-2 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white;
+    @apply btn bg-slate-900 text-white hover:bg-slate-800 h-10 px-4 py-2;
   }
   .btn-outline {
-    @apply btn border border-slate-200 bg-white hover:bg-slate-50 h-10 px-4 py-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800;
+    @apply btn border border-slate-200 bg-white hover:bg-slate-50 h-10 px-4 py-2;
   }
   .btn-destructive {
     @apply btn bg-rose-600 text-white hover:bg-rose-700 h-10 px-4 py-2;
@@ -49,4 +49,23 @@
   .badge {
     @apply inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium leading-none;
   }
+}
+
+.dark .card {
+  @apply bg-slate-900 border-slate-800;
+}
+.dark .input {
+  @apply bg-slate-900 border-slate-700 text-slate-100 placeholder:text-slate-500;
+}
+.dark .label {
+  @apply text-slate-300;
+}
+.dark .btn-primary {
+  @apply bg-slate-100 text-slate-900 hover:bg-white;
+}
+.dark .btn-outline {
+  @apply border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800;
+}
+.dark .btn-destructive {
+  @apply bg-rose-600 text-white hover:bg-rose-700;
 }
