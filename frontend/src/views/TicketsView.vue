@@ -35,42 +35,58 @@
 
     <!-- Filter Bar -->
     <div class="card p-4">
-      <div class="flex flex-col sm:flex-row gap-3">
-        <div class="relative flex-1">
-          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <input
-            v-model="filters.search"
-            type="search"
-            placeholder="Cari berdasarkan judul tiket..."
-            class="input pl-9"
-            @input="handleSearchInput"
-          />
+      <div
+        class="grid grid-cols-1 sm:grid-cols-2 gap-3"
+        :class="isRequester ? 'lg:grid-cols-3' : 'lg:grid-cols-4'"
+      >
+        <div class="sm:col-span-2 lg:col-span-1 space-y-1.5">
+          <label for="filter-search" class="block text-xs font-medium text-slate-700">Cari</label>
+          <div class="relative">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              id="filter-search"
+              v-model="filters.search"
+              type="search"
+              placeholder="Cari judul tiket..."
+              class="input pl-9 text-xs sm:text-sm h-9"
+              @input="handleSearchInput"
+            />
+          </div>
         </div>
 
-        <select v-model="filters.status" class="input sm:w-40" @change="applyFilters">
-          <option value="">Semua Status</option>
-          <option value="open">Open</option>
-          <option value="in_progress">In Progress</option>
-          <option value="resolved">Resolved</option>
-          <option value="closed">Closed</option>
-        </select>
+        <div class="space-y-1.5">
+          <label for="filter-status" class="block text-xs font-medium text-slate-700">Status</label>
+          <select id="filter-status" v-model="filters.status" class="input text-xs sm:text-sm h-9" @change="applyFilters">
+            <option value="">Semua Status</option>
+            <option value="open">Open</option>
+            <option value="in_progress">In Progress</option>
+            <option value="resolved">Resolved</option>
+            <option value="closed">Closed</option>
+          </select>
+        </div>
 
-        <select v-model="filters.priority" class="input sm:w-40" @change="applyFilters">
-          <option value="">Semua Prioritas</option>
-          <option value="low">Low</option>
-          <option value="medium">Medium</option>
-          <option value="high">High</option>
-          <option value="urgent">Urgent</option>
-        </select>
+        <div class="space-y-1.5">
+          <label for="filter-priority" class="block text-xs font-medium text-slate-700">Prioritas</label>
+          <select id="filter-priority" v-model="filters.priority" class="input text-xs sm:text-sm h-9" @change="applyFilters">
+            <option value="">Semua Prioritas</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="urgent">Urgent</option>
+          </select>
+        </div>
 
-        <select v-if="!isRequester" v-model="filters.assignee_id" class="input sm:w-48" @change="applyFilters">
-          <option value="">Semua Assignee</option>
-          <option value="unassigned">Belum Di-assign</option>
-          <option value="me">Tiket Saya</option>
-          <option v-for="u in assignees" :key="u.id" :value="u.id">{{ u.name }}</option>
-        </select>
+        <div v-if="!isRequester" class="space-y-1.5">
+          <label for="filter-assignee" class="block text-xs font-medium text-slate-700">Ditangani Oleh</label>
+          <select id="filter-assignee" v-model="filters.assignee_id" class="input text-xs sm:text-sm h-9" @change="applyFilters">
+            <option value="">Semua Assignee</option>
+            <option value="unassigned">Belum Di-ditangani</option>
+            <option value="me">Tiket Saya</option>
+            <option v-for="u in assignees" :key="u.id" :value="u.id">{{ u.name }}</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -97,7 +113,7 @@
           <thead class="border-b bg-slate-50">
             <tr>
               <th class="text-left font-medium text-slate-500 px-3 py-2">ID</th>
-              <th class="text-left font-medium text-slate-500 px-3 py-2" title="Klik baris untuk melihat deskripsi">Keterangan ⤢</th>
+              <th class="text-left font-medium text-slate-500 px-3 py-2" title="Klik baris untuk melihat deskripsi">Keterangan</th>
               <th v-if="!isRequester" class="text-left font-medium text-slate-500 px-3 py-2">Pelapor</th>
               <th class="text-left font-medium text-slate-500 px-3 py-2">Status</th>
               <th class="text-left font-medium text-slate-500 px-3 py-2">Prioritas</th>
