@@ -246,9 +246,11 @@ onMounted(() => {
     if (settings.fullscreen !== isFull) settings.fullscreen = isFull
   })
 
-  // SSE real-time notifications
+  // SSE real-time notifications: notifikasi tiket dibuat hanya untuk agent dan admin
   unsubs.push(realtime.onEvent('ticket_created', (data) => {
-    showToast(`${t('rt_ticket_created')}: ${data?.title || ''}`)
+    if (auth.isAgent || auth.isAdmin) {
+      showToast(`${t('rt_ticket_created')}: ${data?.title || ''}`)
+    }
   }))
   unsubs.push(realtime.onEvent('ticket_updated', () => {
     showToast(t('rt_ticket_updated'))

@@ -145,7 +145,11 @@ func (s *TicketService) Create(ctx context.Context, actor *domain.User, req doma
 	}
 
 	ticket.Requester = requesterUser
-	realtime.DefaultBroker.Broadcast("ticket_created", map[string]string{"id": ticket.ID, "title": ticket.Title})
+	realtime.DefaultBroker.BroadcastTo(
+		realtime.Audience{Roles: []string{string(domain.RoleAgent), string(domain.RoleAdmin)}},
+		"ticket_created",
+		map[string]string{"id": ticket.ID, "title": ticket.Title},
+	)
 	return ticket, nil
 }
 
@@ -225,7 +229,14 @@ func (s *TicketService) Update(ctx context.Context, actor *domain.User, id strin
 		return nil, err
 	}
 
-	realtime.DefaultBroker.Broadcast("ticket_updated", map[string]string{"id": ticket.ID})
+	realtime.DefaultBroker.BroadcastTo(
+		realtime.Audience{
+			Roles:   []string{string(domain.RoleAgent), string(domain.RoleAdmin)},
+			UserIDs: []string{ticket.RequesterID},
+		},
+		"ticket_updated",
+		map[string]string{"id": ticket.ID},
+	)
 	return s.Get(ctx, actor, ticket.ID)
 }
 
@@ -258,7 +269,14 @@ func (s *TicketService) AddComment(ctx context.Context, actor *domain.User, tick
 		return nil, err
 	}
 
-	realtime.DefaultBroker.Broadcast("comment_added", map[string]string{"ticket_id": ticketID})
+	realtime.DefaultBroker.BroadcastTo(
+		realtime.Audience{
+			Roles:   []string{string(domain.RoleAgent), string(domain.RoleAdmin)},
+			UserIDs: []string{ticket.RequesterID},
+		},
+		"comment_added",
+		map[string]string{"ticket_id": ticketID},
+	)
 	return comment, nil
 }
 
@@ -282,7 +300,14 @@ func (s *TicketService) AddAttachment(ctx context.Context, actor *domain.User, t
 		return nil, err
 	}
 
-	realtime.DefaultBroker.Broadcast("attachment_added", map[string]string{"ticket_id": ticketID})
+	realtime.DefaultBroker.BroadcastTo(
+		realtime.Audience{
+			Roles:   []string{string(domain.RoleAgent), string(domain.RoleAdmin)},
+			UserIDs: []string{ticket.RequesterID},
+		},
+		"attachment_added",
+		map[string]string{"ticket_id": ticketID},
+	)
 	return att, nil
 }
 

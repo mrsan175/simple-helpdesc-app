@@ -440,8 +440,10 @@ onMounted(async () => {
   // Real-time subscribe for ticket changes
   listUnsubs.push(
     realtime.onEvent('ticket_created', () => {
-      fetchTickets()
-      fetchStats()
+      if (!isRequester.value) {
+        fetchTickets()
+        fetchStats()
+      }
     })
   )
   listUnsubs.push(

@@ -9,7 +9,7 @@ Clean/layered architecture with strict dependency inversion:
 - **Service** (`internal/service`): business logic, state machine validation, RBAC, SLA check.
 - **Handler** (`internal/handler`): HTTP parsing, multipart upload validation, SSE event streaming, error → HTTP status.
 - **Middleware** (`internal/middleware`): JWT auth (header and query token for EventSource), role guards.
-- **Realtime** (`internal/realtime`): in-memory pub/sub broker for SSE fan-out.
+- **Realtime** (`internal/realtime`): in-memory pub/sub broker for SSE fan-out with role/user audience scoping (ticket_created scoped to agent/admin; updates/comments scoped to staff + ticket requester).
 
 ### Key Decisions
 

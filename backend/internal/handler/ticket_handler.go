@@ -286,7 +286,7 @@ func (h *TicketHandler) StreamEvents(c *gin.Context) {
 	c.Writer.WriteString(": connected\n\n")
 	c.Writer.Flush()
 
-	ch, unsubscribe := realtime.DefaultBroker.Subscribe()
+	ch, unsubscribe := realtime.DefaultBroker.Subscribe(string(user.Role), user.ID)
 	defer unsubscribe()
 
 	ticker := time.NewTicker(25 * time.Second)
