@@ -2,22 +2,23 @@
 
 Aplikasi web helpdesk internal modern untuk manajemen tiket dukungan TI dan operasional perusahaan. Dibangun menggunakan arsitektur Clean/Layered Backend di atas Go dan Frontend reaktif Vue 3.
 
+
 ---
 
 ## 1. Tech Stack
 
 - **Monorepo:** Berisi service `backend/` dan `frontend/` dalam satu repository.
-- **Backend:** Go 1.22 (build image `golang:1.23-alpine`), Gin v1.10, Clean Layered Architecture (`handler` → `service` → `repository` → `domain`).
+- **Backend:** Go 1.22 (build image `golang:1.23-alpine`), Gin v1.10, arsitektur berlapis (`handler` → `service` → `repository`, dengan entity dan kontrak interface di `domain`).
   - Auth: JWT (`golang-jwt/jwt/v5`), bcrypt, middleware `Authorization: Bearer`.
   - Data: PostgreSQL (`lib/pq`), migrasi SQL + seeder otomatis (`SEED_ON_START=true`).
   - Validasi: `go-playground/validator/v10`; konfigurasi: `godotenv`.
 - **Frontend:** Vue 3.5 (Composition API `<script setup>`), Vite 5, Vue Router 4 (navigation guards), Pinia 2 (stores: `auth`, `settings`), Axios 1.7 (interceptor 401), Tailwind CSS 3.4 (`darkMode: 'class'`).
-  - **i18n:** module lokal `src/i18n/index.js` (kamus ID/EN + `useI18n()` / `t(key)`), mencakup seluruh UI — bukan hanya chrome.
-  - **Theme:** mode gelap/terang via toko Pinia `stores/settings.js`, persisten di `localStorage`, diterapkan sebelum paint pertama (`index.html` inline script) + `src/dark.css` untuk remap global utilitas Tailwind.
+  - **i18n:** modul lokal `src/i18n/index.js` (kamus ID/EN + `useI18n()` / `t(key)`) untuk label dan pesan antarmuka. Sebagian label masih tetap, dan format tanggal masih memakai locale `id-ID`.
+  - **Theme:** mode gelap/terang via store Pinia `stores/settings.js`, persisten di `localStorage`, diterapkan sebelum paint pertama (`index.html` inline script) + `src/dark.css` untuk remap global utilitas Tailwind.
   - **Toolbar atas (navbar):** tombol fullscreen, switch bahasa ID/EN, switch tema, dan dropdown avatar user.
   - **Loading bar:** indikator progress tipis di bagian paling atas halaman saat perpindahan route.
 - **Database:** PostgreSQL 16 (Container port host `5433:5432`).
-- **Containerization:** Docker multi-stage build (Go distroless-like alpine, Node 20 build → Nginx 1.27 serve) + `docker-compose`.
+- **Containerization:** Docker multi-stage build (Go build → Alpine 3.20 non-root, Node 20 build → Nginx 1.27 serve) + Docker Compose.
 
 ---
 
@@ -27,12 +28,12 @@ Semua akun menggunakan password yang sama: **`Password123!`**.
 
 | Label / Nama | Email | Role | Hak Akses Utama |
 |---|---|---|---|
-| **Admin Helpdesk** | `admin@helpdesk.local` | `admin` | Semua hak akses: kelola role user, ubah assignee/prioritas tiket, full state machine |
+| **Admin Helpdesk** | `admin@helpdesk.local` | `admin` | Kelola role user, assignee, pelapor, prioritas, dan statistik; perubahan status tetap mengikuti matriks transisi |
 | **Agent Helpdesk** | `agent@helpdesk.local` | `agent` | Mengerjakan tiket (open→in_progress→resolved), auto-assign diri saat proses, mengatur prioritas tiket, internal note |
 | **Requester A (Budi)** | `requester1@helpdesk.local` | `requester` | Buat tiket, pantau tiket milik sendiri, reopen (resolved→open), cancel tiket (open→closed) |
 | **Requester B (Siti)** | `requester2@helpdesk.local` | `requester` | Terisolasi dari Requester A |
 
-*Tersedia tombol login cepat (Demo Accounts) di halaman `/login`.*
+*Tombol Demo Accounts di halaman `/login` mengisi kredensial; pengguna tetap menekan tombol login. Seeder menambahkan akun yang belum ada, bukan mereset password/role akun yang sudah tersimpan. Akun demo dan kredensial Compose hanya untuk pengembangan.*
 
 ---
 
@@ -45,16 +46,16 @@ Semua akun menggunakan password yang sama: **`Password123!`**.
 
 ### 3.2. Properti Tiket (Assignee & Prioritas)
 - **Prioritas (Priority):**
-  - Pembuatan tiket baru tidak mewajibkan/menentukan prioritas (dapat kosong / belum diatur pada awal).
+  - Prioritas opsional saat pembuatan. Form create tidak menyediakan field prioritas; prioritas yang dikirim requester melalui API diabaikan, sedangkan admin dapat menentukannya melalui API.
   - Baik **Agent** maupun **Admin** dapat menentukan dan memperbarui prioritas tiket kapan saja via antarmuka detail tiket (`PATCH /api/tickets/{id}`).
-  - Requester tidak dapat menentukan atau mengubah prioritas (ditolak `403 Forbidden`).
+  - Requester tidak dapat mengubah prioritas melalui PATCH; pengiriman nilai prioritas non-null ditolak `403 Forbidden`.
 - **Assignee:**
-  - Saat Agent mengubah status dari `open` ke `in_progress`, tiket **otomatis di-assign** ke Agent tersebut.
+  - Saat Agent mengubah status dari `open` ke `in_progress`, tiket **otomatis di-assign** ke Agent tersebut. Transisi oleh admin tidak melakukan auto-assignment.
   - Role Agent **tidak memiliki dropdown** Assignee (hanya-baca / read-only). Jika dicoba kirim via API, backend menolak dengan `403 Forbidden`.
-  - Hanya **Admin** yang memiliki dropdown untuk mengubah Assignee secara manual.
+  - Hanya **Admin** yang memiliki dropdown untuk mengubah Assignee secara manual. Untuk melepas assignee melalui API, kirim `{"assignee_id":""}` atau `{"assignee_id":"unassigned"}`; JSON `null` dianggap tidak mengubah field.
 - **Pelapor (Requester):**
   - Admin dapat membuat tiket atas nama user lain (`requester_id` pada `POST /api/tickets`) dan mengubah pelapor tiket (`requester_id` pada `PATCH /api/tickets/{id}`).
-  - Requester & Agent tidak dapat mengubah pelapor (ditolak `403 Forbidden`).
+  - Perubahan pelapor melalui PATCH hanya untuk admin; requester/agent yang mengirim `requester_id` non-null ditolak `403 Forbidden`. Saat create oleh requester, `requester_id` kiriman diabaikan dan pelapor tetap pengguna tersebut.
 - **Kolom Requester di Tabel (`/tickets`):**
   - Hanya muncul pada role **Agent** dan **Admin** (menampilkan Nama dan Email sekaligus dalam 1 kolom).
   - Disembunyikan untuk role Requester.
@@ -63,17 +64,18 @@ Semua akun menggunakan password yang sama: **`Password123!`**.
 
 | Status Asal (`current`) | Status Tujuan (`target`) | Role yang Diizinkan | Keterangan |
 |---|---|---|---|
-| `open` | `in_progress` | `agent`, `admin` | Agent memproses tiket (otomatis menjadi assignee) |
+| `open` | `in_progress` | `agent`, `admin` | Mulai memproses; auto-assignment hanya jika aktornya agent |
 | `open` | `closed` | `requester`, `admin` | Pembatalan tiket oleh pembuat atau admin |
 | `in_progress` | `resolved` | `agent`, `admin` | Penanganan masalah selesai |
 | `resolved` | `closed` | `requester`, `agent`, `admin` | Konfirmasi tiket ditutup permanen |
 | `resolved` | `open` | `requester` | Tiket dibuka kembali oleh requester jika kendala berulang |
 
-*Transisi di luar matriks ini ditolak backend dengan status HTTP `422 Unprocessable Entity`.*
+*Transisi di luar matriks ini ditolak backend dengan status HTTP `422 Unprocessable Entity`. Mengirim status yang sama bukan transisi baru. Admin tidak dapat reopen tiket; `closed` tidak memiliki transisi keluar, tetapi komentar, lampiran, dan perubahan metadata belum dibatasi berdasarkan status tersebut.*
 
 ### 3.4. Catatan Internal (Internal Notes)
 - Komentar dengan `is_internal = true` hanya dapat dibuat dan dibaca oleh `agent` dan `admin`.
-- Requester tidak menerima catatan internal pada payload detail tiket (`GET /api/tickets/{id}`).
+- Requester tidak menerima isi catatan internal pada payload detail tiket (`GET /api/tickets/{id}`). Event `comment_added` tetap dikirim ke pemilik tiket, tetapi hanya berisi `ticket_id`.
+- Lampiran terhubung ke tiket, bukan komentar, dan tidak memiliki flag internal. File yang dikirim bersama internal note tetap dapat diakses requester pemilik tiket.
 
 ---
 
@@ -89,27 +91,33 @@ Semua akun menggunakan password yang sama: **`Password123!`**.
 ## 4. Fitur Tambahan & Bonus (Bonus Features)
 
 1. **Lampiran Berkas (File Attachments):**
-   - Mendukung unggah berkas hingga 5MB pada tiket dengan validasi ukuran & tipe berkas (gambar, PDF, dokumen aman).
+   - Handler backend membatasi ukuran file hingga 5 MiB (5.242.880 byte) dan memakai whitelist ekstensi: JPG/JPEG, PNG, GIF, WEBP, PDF, TXT, CSV, DOC/DOCX, XLS/XLSX, ZIP.
+   - MIME type ditetapkan dari ekstensi; isi file belum diperiksa melalui MIME sniffing atau antivirus.
    - Enkapsulasi nama berkas dengan UUID pada storage server.
    - Endpoint `POST /api/tickets/{id}/attachments` dan `GET /api/attachments/{id}/download`.
-   - Berkas dapat dilampirkan langsung saat membuat tiket maupun saat mengirim komentar/balasan.
+   - UI menyediakan lampiran saat membuat tiket maupun mengirim komentar/balasan, tetapi upload merupakan request terpisah. Tiket/komentar dapat berhasil tersimpan meskipun upload gagal.
 2. **Notifikasi Real-Time Berbasis Role & Kepemilikan (SSE with Audience Scoping):**
    - In-memory event broker tanpa dependensi eksternal via endpoint `GET /api/events`.
    - Event `ticket_created` **hanya dikirimkan dan ditampilkan kepada `agent` dan `admin`** (tidak bocor ke requester lain).
    - Event `ticket_updated`, `comment_added`, dan `attachment_added` discoped khusus untuk staf (`agent`, `admin`) dan pembuat tiket terkait (`requester_id`).
-   - Fan-out notifikasi instan memperbarui data dan badge secara otomatis di UI tanpa perlu refresh.
+   - Event memicu toast serta refetch daftar/detail yang berlangganan. Halaman statistik admin belum melakukan auto-refetch.
+   - Broker hanya berada di memori satu proses, tanpa replay; event dapat dibuang jika buffer klien penuh dan belum tersinkron lintas instance backend.
 3. **Pelacakan SLA (Service Level Agreement):**
-   - Otomatis menghitung status overdue berdasarkan tingkat urgensi tiket (Urgent 4 jam, High 8 jam, Medium 24 jam, Low 48 jam).
-   - Indikator visual badge **Terlambat / Overdue** muncul otomatis pada detail dan daftar tiket.
+   - Tiket overdue hanya jika berprioritas `urgent`, berstatus `open`, dan umur sejak `created_at` melebihi `SLA_HOURS` (default **2 jam**).
+   - Belum ada SLA terpisah untuk high/medium/low, histori breach, atau eskalasi otomatis. Reopen tetap menggunakan waktu pembuatan awal.
+   - Badge **Terlambat / Overdue** dihitung saat daftar/detail dimuat, bukan melalui timer atau job background.
 4. **Halaman Statistik Admin Terperinci:**
-   - Menyajikan KPI operasional: Total Tiket, Tingkat Penyelesaian (Resolution Rate), SLA Breach Rate, Distribusi Kategori & Prioritas, serta Matriks Beban Kerja Agen (Workload).
+   - Menampilkan jumlah tiket total, open, in progress, resolved, closed, dan overdue, distribusi kategori/prioritas, serta beban kerja agent.
+   - Kategori mencakup seluruh tiket. Distribusi prioritas mencakup tiket bukan closed yang prioritasnya terisi, termasuk resolved. Workload hanya menghitung agent dengan tiket bukan resolved/closed.
+   - Belum ada metrik khusus resolution rate atau SLA breach rate.
    - Menjadi default landing route untuk akun `admin`, ditempatkan di posisi teratas navigasi sidebar.
    - Endpoint khusus `GET /api/admin/stats` dengan proteksi role `admin`.
 5. **Pengaturan Pelapor Tiket oleh Admin:**
    - Admin dapat memilih requester saat membuat tiket baru atas nama pengguna lain.
    - Admin dapat mengubah requester pada tiket yang sudah berjalan langsung dari halaman detail tiket.
-6. **CI/CD Pipeline (GitHub Actions):**
-   - Workflow `.github/workflows/ci.yml` otomatis menjalankan Go lint & race detector test, serta validasi build Vue 3 pada setiap push dan pull request.
+6. **Continuous Integration (GitHub Actions):**
+   - Workflow `.github/workflows/ci.yml` berjalan pada push/pull request ke `master` dan `main`: backend memakai `go vet ./...` dan `go test -v -race ./...`; frontend memakai `npm ci` dan `npm run build`.
+   - Belum ada deployment otomatis (CD) atau langkah typecheck frontend terpisah.
 
 ---
 
@@ -140,19 +148,35 @@ Layanan yang berjalan:
    ```bash
    cd backend
    cp .env.example .env
-   # Edit backend/.env pastikan DATABASE_URL mengarah ke localhost:5433
+   # Edit .env: DATABASE_URL dan JWT_SECRET wajib terisi.
    # DATABASE_URL=postgres://postgres:postgres@localhost:5433/helpdesk?sslmode=disable
+   # Gunakan JWT_SECRET acak yang kuat, bukan nilai demo Compose.
    go run ./cmd/api
    ```
-   *Server berjalan di `http://localhost:8080` (auto-migrate & auto-seed 13 tiket sampel).*
+   *Server berjalan di `http://localhost:8080`. Migrasi dijalankan pada startup; jika `SEED_ON_START=true` (default), seeder menambahkan empat akun dan 13 tiket sampel yang belum ada.*
 
 3. **Jalankan Frontend (Vite Dev Server):**
    ```bash
    cd frontend
-   npm install
-   npm run dev
+   npm ci
+   VITE_API_BASE_URL=/api npm run dev
    ```
-   *Aplikasi dapat diakses di `http://localhost:5173`.*
+   *Aplikasi dapat diakses di `http://localhost:5173`. Base URL `/api` memakai proxy Vite ke `http://localhost:8080`; target proxy dapat diubah melalui environment proses `VITE_BACKEND_URL`. Tanpa `VITE_API_BASE_URL`, klien memakai URL absolut `http://localhost:8080/api` dan melewati proxy.*
+
+### Konfigurasi Backend
+
+| Variabel | Default | Keterangan |
+|---|---|---|
+| `PORT` | `8080` | Port HTTP server. |
+| `DATABASE_URL` | Wajib diisi | DSN PostgreSQL; gunakan `localhost:5433` dari host atau `db:5432` dari container Compose. |
+| `JWT_SECRET` | Wajib diisi | Kunci penandatanganan token. |
+| `JWT_EXPIRY_HOURS` | `24` | Masa berlaku JWT dalam jam. |
+| `SLA_HOURS` | `2` | Batas umur urgent-open sebelum overdue. |
+| `SEED_ON_START` | `true` | Seed aktif hanya jika nilai efektif sama dengan string `true`. |
+| `UPLOAD_DIR` | `./uploads` | Direktori file; Compose memakai `/app/uploads` dengan volume `uploads_data`. |
+| `ALLOWED_ORIGINS` | `http://localhost:5173` | Dibaca config tetapi belum diterapkan; router masih mengirim CORS origin `*`. |
+
+`VITE_API_BASE_URL` frontend ditetapkan saat build, bukan saat container Nginx mulai berjalan. Database dan file upload disimpan pada volume terpisah; backup keduanya dan hindari `docker compose down -v` jika data masih diperlukan.
 
 ---
 
@@ -161,45 +185,47 @@ Layanan yang berjalan:
 ### Autentikasi
 - `POST /api/auth/register` – Pendaftaran Requester baru (default role: `requester`)
 - `POST /api/auth/login` – Login & penerbitan Bearer Token JWT
-- `GET  /api/me` – Profil pengguna saat ini
+- `GET  /api/me` – Profil dari claim JWT, bukan lookup user terbaru di database
 
 ### Tiket & Komentar
-- `GET   /api/tickets` – Daftar tiket (dukungan: `page`, `limit`, `status`, `priority`, `assignee_id`, `search`, `sort_by`, `order`)
+- `GET   /api/tickets` – Daftar tiket dengan `page`, `limit`, `status`, `priority` (termasuk `unset`), `assignee_id` (termasuk `me`/`unassigned`), `search` pada judul, `sort_by` (`created_at`/`updated_at`/`priority`), dan `order`
 - `POST  /api/tickets` – Buat tiket baru (khusus `requester` & `admin`)
-- `GET   /api/tickets/{id}` – Detail tiket beserta thread komentar
-- `PATCH /api/tickets/{id}` – Update tiket (transisi status; prioritas oleh agent/admin; assignee & requester oleh admin)
+- `GET   /api/tickets/{id}` – Detail tiket beserta komentar dan lampiran sesuai hak akses
+- `PATCH /api/tickets/{id}` – Update status; prioritas oleh agent/admin; assignee & requester oleh admin. Tidak menyediakan edit judul, deskripsi, atau kategori
 - `POST  /api/tickets/{id}/comments` – Tambah komentar (mendukung `is_internal: true` untuk agent/admin)
 
 ### Lampiran & Realtime
-- `POST /api/tickets/{id}/attachments` – Unggah berkas lampiran (multipart/form-data, maks 5MB)
+- `POST /api/tickets/{id}/attachments` – Unggah berkas lampiran (multipart/form-data, field `file`, maks 5 MiB pada handler backend)
 - `GET  /api/attachments/{id}/download` – Unduh berkas lampiran (validasi otorisasi tiket)
 - `GET  /api/events` – Server-Sent Events (SSE) stream notifikasi real-time
 
 ### Statistik (Role-Based)
-- `GET /api/stats` – Statistik ringkasan tiket (Open, In Progress, Resolved, Urgent)
+- `GET /api/stats` – Jumlah tiket total/per status dan urgent aktif (bukan resolved/closed); requester hanya melihat miliknya. Field `overdue_tickets` belum dihitung pada endpoint ini dan bernilai nol
 - `GET /api/tickets/stats` – Alias statistik ringkasan tiket
 - `GET /api/admin/stats` – Statistik komprehensif operasional & beban kerja (khusus role `admin`)
 
-### Pengguna (Admin Only)
-- `GET   /api/users` – Daftar seluruh pengguna (bisa filter role, agent hanya dapat melihat daftar assignee)
-- `PATCH /api/users/{id}/role` – Ubah role pengguna (dilengkapi proteksi admin terakhir)
+### Pengguna (Agent/Admin)
+- `GET   /api/users` – Admin melihat seluruh user dengan filter `role` opsional; agent hanya menerima daftar agent/admin; requester ditolak
+- `PATCH /api/users/{id}/role` – Khusus admin; mencegah admin terakhir menurunkan role dirinya sendiri pada alur biasa, tetapi belum memakai lock/transaksi untuk perubahan serentak
+
+Belum tersedia endpoint hapus tiket, edit/hapus komentar, reset password, refresh token, atau logout/revoke token server.
 
 ---
 
 ## 7. Pengujian Otomatis (Automated Tests)
 
-Suite pengujian backend mencakup seluruh layer arsitektur (service, state machine, RBAC, dan HTTP router API handler):
+Suite backend menguji service, state machine, RBAC, broker realtime, serta router/middleware/handler HTTP dengan repository mock. Test ini tidak menjalankan migrasi atau query repository terhadap PostgreSQL nyata:
 
 ```bash
 cd backend
 go test -v -race ./...
 ```
 
-Cakupan 18 test cases:
-1. `TestAPI_AuthEndpoints` – Pendaftaran, login, dan validasi sesi `/api/me`
-2. `TestAPI_TicketsEndpoints` – Siklus CRUD tiket, otorisasi role, dan filter
+Terdapat 18 fungsi test top-level:
+1. `TestAPI_AuthEndpoints` – Pendaftaran, login, dan akses `/api/me` memakai token
+2. `TestAPI_TicketsEndpoints` – Create, list, detail, update tiket, serta pembatasan role; bukan operasi delete
 3. `TestAPI_CommentsEndpoint` – Komentar publik dan proteksi catatan internal
-4. `TestAPI_AttachmentsUploadAndDownload` – Upload multipart, validasi ekstensi/ukuran, dan download berkas
+4. `TestAPI_AttachmentsUploadAndDownload` – Upload multipart, download berkas, dan penolakan ekstensi `.exe`
 5. `TestAPI_StatsEndpoints` – Otorisasi endpoint statistik umum dan statistik admin
 6. `TestAPI_UsersEndpoints` – Manajemen pengguna dan proteksi hak akses role admin
 7. `TestAPI_EventsEndpoint` – Koneksi SSE streaming `/api/events`
@@ -211,16 +237,31 @@ Cakupan 18 test cases:
 13. `TestAgentCannotCreateTicket` – Verifikasi larangan role agent membuat tiket
 14. `TestAgentCanManagePriority` – Agent dapat mengatur prioritas tiket yang awalnya kosong; agent tetap tidak dapat mengubah assignee
 15. `TestAdminCanChangeRequester` – Admin dapat mengubah pelapor tiket; requester/agent ditolak
-16. `TestSLAOverdueCalculation` – Kalkulasi SLA overdue untuk tiket urgent/high/medium/low
-17. `TestAttachmentUploadAndAccess` – Validasi tipe berkas dan otorisasi akses lampiran
-18. `TestBrokerAudienceScoping` – Verifikasi event `ticket_created` hanya diterima agent/admin; event tiket lain diterima requester pemilik tiket
+16. `TestSLAOverdueCalculation` – Tiket urgent-open berumur tiga jam menjadi overdue dengan SLA dua jam
+17. `TestAttachmentUploadAndAccess` – Penyimpanan metadata dan isolasi akses lampiran antar-requester pada service
+18. `TestBrokerAudienceScoping` – Agent menerima `ticket_created`, requester tidak; requester menerima `comment_added` yang ditujukan ke ID-nya
+
+Mock belum meniru seluruh filter, pagination, dan agregasi SQL. Daftar test di atas bukan jaminan cakupan seluruh skenario keamanan atau integrasi database.
+
+Validasi tambahan:
+
+```bash
+# Dari backend/
+go vet ./...
+
+# Dari frontend/
+npm ci
+npm run build
+```
+
+Frontend belum memiliki script unit/E2E test; build Vite bukan pengujian perilaku browser atau typecheck terpisah.
 
 ---
 
 ## 8. Struktur Direktori (Monorepo)
 
 ```
-helpdesk-app/
+simple-journey-indonesia/
 ├── backend/
 │   ├── cmd/api/                 # Entrypoint server (main.go)
 │   ├── internal/
@@ -228,20 +269,22 @@ helpdesk-app/
 │   │   ├── database/            # Koneksi, skrip migrasi SQL & seeder
 │   │   ├── domain/              # Entities, DTO, interfaces, dan custom errors
 │   │   ├── handler/             # HTTP controllers (Gin)
-│   │   ├── middleware/          # Auth JWT & CORS middleware
+│   │   ├── middleware/          # Auth JWT & helper role guard (CORS ada di router)
+│   │   ├── realtime/            # Broker SSE in-memory dengan audience scoping
 │   │   ├── repository/          # PostgreSQL data access layer
 │   │   └── service/             # Core business logic & state machine
-│   ├── tests/                   # Automated unit & integration tests
+│   ├── tests/                   # Test service, HTTP, dan broker dengan repository mock
 │   ├── Dockerfile
 │   └── go.mod
 ├── frontend/
 │   ├── src/
 │   │   ├── components/shared/   # StatusBadge, PriorityBadge, ConfirmDialog, Toast, dll
 │   │   ├── constants/           # Definisi status & matriks transisi
+│   │   ├── i18n/                # Kamus Indonesia/Inggris dan useI18n()
 │   │   ├── router/              # Vue Router & Navigation Guards
 │   │   ├── services/            # Axios API wrappers
-│   │   ├── stores/              # Pinia auth store
-│   │   └── views/               # Halaman Login, Register, Tickets, CreateTicket, Detail, Users
+│   │   ├── stores/              # Pinia auth dan settings
+│   │   └── views/               # Login, Register, Tickets, CreateTicket, Detail, Users, AdminStats
 │   ├── Dockerfile
 │   ├── nginx.conf
 │   └── package.json
@@ -249,3 +292,14 @@ helpdesk-app/
 ├── docker-compose.yml
 └── README.md
 ```
+
+---
+
+## 9. Batasan Implementasi & Catatan Produksi
+
+- **Sesi dan perubahan role:** middleware dan `/api/me` menggunakan claim JWT tanpa lookup database. Token lama mempertahankan role lama hingga kedaluwarsa; login ulang menerbitkan token dengan role terbaru. Logout browser tidak mencabut token di server.
+- **Lampiran melalui Nginx:** `frontend/nginx.conf` belum menetapkan `client_max_body_size`. Default Nginx `1m` dapat menolak upload dengan 413 sebelum batas 5 MiB backend; periksa konfigurasi efektif proxy dan sesuaikan batas beserta overhead multipart.
+- **Unassign melalui UI:** pilihan kosong saat ini dikirim sebagai `null`, sehingga backend tidak melepas assignee. API menerima string kosong atau `unassigned` sebagai alternatif.
+- **Konsistensi data:** update tiket masih read-modify-write tanpa version/row lock. Create+upload dan komentar+upload bukan transaksi tunggal.
+- **Validasi:** nilai role/prioritas belum sepenuhnya dibatasi whitelist backend atau CHECK database. Opsi UI bukan pengganti validasi API.
+- **Kesiapan produksi:** ganti secret/kredensial demo, nonaktifkan seed, gunakan HTTPS, terapkan whitelist CORS yang benar, dan tinjau rate limiting, validasi isi file, backup, serta observability. Konfigurasi demo bukan konfigurasi produksi yang sudah diperkeras.
