@@ -124,7 +124,7 @@ Tanpa `VITE_API_BASE_URL`, klien frontend menggunakan URL absolut `http://localh
 | `UPLOAD_DIR` | `./uploads` | Direktori penyimpanan lampiran; Compose memakai `/app/uploads`. |
 | `ALLOWED_ORIGINS` | `http://localhost:5173` | Dibaca konfigurasi, tetapi belum diterapkan oleh router; CORS saat ini masih memakai origin `*`. |
 
-**Catatan penggunaan:** kredensial dan secret Compose hanya untuk demo/pengembangan. Untuk produksi, ganti kredensial dan secret, nonaktifkan seed, gunakan HTTPS, serta tinjau konfigurasi CORS dan backup database/lampiran. Pada frontend Nginx, `client_max_body_size` belum diatur; default Nginx `1m` dapat menyebabkan upload ditolak dengan HTTP 413 sebelum mencapai batas backend 5 MiB.
+**Catatan penggunaan:** kredensial dan secret Compose hanya untuk demo/pengembangan. Untuk produksi, ganti kredensial dan secret, nonaktifkan seed, gunakan HTTPS, serta tinjau konfigurasi CORS dan backup database/lampiran. Batas file lampiran adalah **5 MiB (5.242.880 byte)**, divalidasi di frontend dan backend. Nginx memakai `client_max_body_size 6m` pada `/api/` untuk memberi ruang metadata `multipart/form-data`; ini bukan berarti file 6 MiB diperbolehkan. File di atas 5 MiB tetap ditolak backend, sedangkan total request di atas 6 MiB ditolak Nginx dengan HTTP 413.
 
 ## 2. Akun Seed untuk Tiap Peran
 

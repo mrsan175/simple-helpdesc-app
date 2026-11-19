@@ -313,6 +313,51 @@ func TestAPI_AttachmentsUploadAndDownload(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400 rejecting .exe, got %d", w.Code)
 	}
+
+	for _, tc := range []struct {
+		name       string
+		size       int
+		wantStatus int
+	}{
+		{name: "exactly_5_MiB", size: 5 << 20, wantStatus: http.StatusCreated},
+		{name: "over_5_MiB", size: (5 << 20) + 1, wantStatus: http.StatusBadRequest},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var body bytes.Buffer
+			writer := multipart.NewWriter(&body)
+			file, err := writer.CreateFormFile("file", "size_limit.txt")
+			if err != nil {
+				t.Fatalf("create multipart file: %v", err)
+			}
+			if _, err := file.Write(bytes.Repeat([]byte("a"), tc.size)); err != nil {
+				t.Fatalf("write multipart file: %v", err)
+			}
+			if err := writer.Close(); err != nil {
+				t.Fatalf("close multipart writer: %v", err)
+			}
+
+			req := httptest.NewRequest(http.MethodPost, "/api/tickets/"+ticket.ID+"/attachments", &body)
+			req.Header.Set("Authorization", "Bearer "+reqToken)
+			req.Header.Set("Content-Type", writer.FormDataContentType())
+			response := httptest.NewRecorder()
+			env.Router.ServeHTTP(response, req)
+			if response.Code != tc.wantStatus {
+				t.Fatalf("upload %d bytes: expected %d, got %d: %s", tc.size, tc.wantStatus, response.Code, response.Body.String())
+			}
+
+			if tc.wantStatus == http.StatusCreated {
+				var result struct {
+					Data domain.Attachment `json:"data"`
+				}
+				if err := json.Unmarshal(response.Body.Bytes(), &result); err != nil {
+					t.Fatalf("decode upload response: %v", err)
+				}
+				if result.Data.FileSize != int64(tc.size) {
+					t.Fatalf("expected file size %d, got %d", tc.size, result.Data.FileSize)
+				}
+			}
+		})
+	}
 }
 
 // 5. Stats & Admin Stats Endpoints: GET /api/stats, GET /api/tickets/stats, GET /api/admin/stats
