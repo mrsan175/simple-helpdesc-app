@@ -206,7 +206,7 @@ Cakupan 16 test cases:
 ## 9. Struktur Direktori (Monorepo)
 
 ```
-simple-journey-indonesia/
+simple-helpedesc-app/
 ├── backend/
 │   ├── cmd/api/                 # Entrypoint server (main.go)
 │   ├── internal/
