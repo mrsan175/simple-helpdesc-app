@@ -127,25 +127,25 @@
                 class="hover:bg-slate-50/80 dark:hover:bg-slate-800/60 cursor-pointer transition-colors"
                 @click="toggleExpand(ticket.id)"
               >
-                <td class="px-3 py-2 align-top">
-                  <span class="font-mono text-[11px] text-slate-400 dark:text-slate-500">{{ ticket.id.slice(0, 8) }}</span>
-                </td>
-                <td class="px-3 py-2 align-top max-w-[22rem]">
-                  <div class="flex items-start gap-1.5">
+                <td class="px-3 py-2 align-top whitespace-nowrap">
+                  <div class="flex items-center gap-1.5">
                     <svg
-                      class="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0 mt-0.5 transition-transform"
+                      class="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0 transition-transform"
                       :class="isExpanded(ticket.id) ? 'rotate-90' : ''"
                       fill="none" viewBox="0 0 24 24" stroke="currentColor"
                     >
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                     </svg>
-                    <div class="min-w-0">
-                      <p class="font-medium text-slate-900 dark:text-slate-100 leading-snug truncate">{{ ticket.title }}</p>
-                      <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                        {{ ticket.category }}
-                        <span v-if="ticket.is_overdue" class="ml-1.5 text-rose-600 font-medium">{{ t('sla_badge') }}</span>
-                      </p>
-                    </div>
+                    <span class="font-mono text-[11px] text-slate-400 dark:text-slate-500">{{ ticket.id.slice(0, 8) }}</span>
+                  </div>
+                </td>
+                <td class="px-3 py-2 align-top max-w-[22rem]">
+                  <div class="min-w-0">
+                    <p class="font-medium text-slate-900 dark:text-slate-100 leading-snug truncate">{{ ticket.title }}</p>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      {{ ticket.category }}
+                      <span v-if="ticket.is_overdue" class="ml-1.5 text-rose-600 font-medium">{{ t('sla_badge') }}</span>
+                    </p>
                   </div>
                 </td>
                 <td v-if="!isRequester" class="px-3 py-2 align-top">
