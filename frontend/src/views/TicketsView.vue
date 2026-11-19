@@ -302,6 +302,7 @@ import { useI18n } from '../i18n'
 const router = useRouter()
 const auth = useAuthStore()
 const { t } = useI18n()
+const realtime = useRealtime()
 
 const isRequester = computed(() => auth.isRequester)
 
@@ -430,35 +431,28 @@ const formatTime = (value) => {
   return new Date(value).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
 }
 
+let listUnsubs = []
+
 onMounted(async () => {
   await fetchTickets()
   await Promise.all([fetchStats(), fetchAssignees()])
 
-  // Real-time subscribe for current user's ticket changes
-  const myTickets = tickets.value?.filter((t) => {
-    // Only requester sees their own tickets in the list
-    return true
-  }) || []
-
-  const listUnsubs = []
-  if (myTickets?.length > 0) {
-    myTickets.forEach((t) => {
-      listUnsubs.push(
-        realtime.onEvent('ticket_updated', (p) => {
-          if (p?.id === t.id) fetchTickets()
-        })
-      )
-      listUnsubs.push(
-        realtime.onEvent('comment_added', (p) => {
-          if (p?.ticket_id === t.id) fetchTickets()
-        })
-      )
-      listUnsubs.push(
-        realtime.onEvent('attachment_added', (p) => {
-          if (p?.ticket_id === t.id) fetchTickets()
-        })
-      )
+  // Real-time subscribe for ticket changes
+  listUnsubs.push(
+    realtime.onEvent('ticket_created', () => {
+      fetchTickets()
+      fetchStats()
     })
-  }
+  )
+  listUnsubs.push(
+    realtime.onEvent('ticket_updated', () => {
+      fetchTickets()
+      fetchStats()
+    })
+  )
+})
+
+onUnmounted(() => {
+  listUnsubs.forEach((fn) => fn())
 })
 </script>
