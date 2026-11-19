@@ -115,6 +115,18 @@ func (s *TicketService) Create(ctx context.Context, actor *domain.User, req doma
 		// Requester tidak menentukan prioritas; agent menetapkannya saat mengambil tiket.
 		priority = domain.PriorityMedium
 	}
+
+	requesterID := actor.ID
+	requesterUser := actor
+	if req.RequesterID != nil && *req.RequesterID != "" && actor.Role == domain.RoleAdmin {
+		target, err := s.userRepo.FindByID(ctx, *req.RequesterID)
+		if err != nil {
+			return nil, domain.ErrNotFound
+		}
+		requesterID = target.ID
+		requesterUser = target
+	}
+
 	now := time.Now().UTC()
 	ticket := &domain.Ticket{
 		ID:          uuid.NewString(),
@@ -123,7 +135,7 @@ func (s *TicketService) Create(ctx context.Context, actor *domain.User, req doma
 		Category:    req.Category,
 		Priority:    priority,
 		Status:      domain.StatusOpen,
-		RequesterID: actor.ID,
+		RequesterID: requesterID,
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	}
@@ -132,7 +144,7 @@ func (s *TicketService) Create(ctx context.Context, actor *domain.User, req doma
 		return nil, err
 	}
 
-	ticket.Requester = actor
+	ticket.Requester = requesterUser
 	realtime.DefaultBroker.Broadcast("ticket_created", map[string]string{"id": ticket.ID, "title": ticket.Title})
 	return ticket, nil
 }
@@ -147,14 +159,14 @@ func (s *TicketService) Update(ctx context.Context, actor *domain.User, id strin
 		if ticket.RequesterID != actor.ID {
 			return nil, domain.ErrForbidden
 		}
-		if req.Priority != nil || req.AssigneeID != nil {
+		if req.Priority != nil || req.AssigneeID != nil || req.RequesterID != nil {
 			return nil, domain.ErrForbidden
 		}
 	}
 
 	if actor.Role == domain.RoleAgent {
-		// Agent tidak boleh mengubah assignee sama sekali.
-		if req.AssigneeID != nil {
+		// Agent tidak boleh mengubah assignee maupun pelapor sama sekali.
+		if req.AssigneeID != nil || req.RequesterID != nil {
 			return nil, domain.ErrForbidden
 		}
 		// Agent boleh menentukan prioritas saat mengambil tiket (in_progress)
@@ -193,6 +205,19 @@ func (s *TicketService) Update(ctx context.Context, actor *domain.User, id strin
 			ticket.AssigneeID = &assigneeUser.ID
 			ticket.Assignee = assigneeUser
 		}
+	}
+
+	// Admin dapat mengubah pelapor (requester) tiket.
+	if req.RequesterID != nil && actor.Role == domain.RoleAdmin {
+		if *req.RequesterID == "" {
+			return nil, domain.ErrNotFound
+		}
+		requesterUser, err := s.userRepo.FindByID(ctx, *req.RequesterID)
+		if err != nil {
+			return nil, domain.ErrNotFound
+		}
+		ticket.RequesterID = requesterUser.ID
+		ticket.Requester = requesterUser
 	}
 
 	ticket.UpdatedAt = time.Now().UTC()

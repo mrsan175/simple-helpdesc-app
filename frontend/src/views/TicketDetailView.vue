@@ -164,10 +164,41 @@
               <span>{{ t('mark_internal') }}</span>
             </label>
 
+            <div class="mt-2.5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+              <label class="btn btn-outline btn-sm cursor-pointer inline-flex items-center gap-1.5 text-xs shrink-0 self-start">
+                <svg class="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                </svg>
+                <span>{{ t('attach_file') }}</span>
+                <input
+                  ref="commentFileInput"
+                  type="file"
+                  class="hidden"
+                  @change="handleCommentFileSelected"
+                />
+              </label>
+
+              <div v-if="commentFile" class="flex items-center gap-2 text-[11px] bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-md min-w-0">
+                <span class="font-medium text-slate-700 dark:text-slate-300 truncate">{{ commentFile.name }}</span>
+                <span class="text-slate-400 dark:text-slate-500 shrink-0">({{ formatFileSize(commentFile.size) }})</span>
+                <button
+                  type="button"
+                  class="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 shrink-0"
+                  :title="t('cancel')"
+                  @click="removeCommentFile"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            <div v-if="commentFileError" class="text-[11px] text-rose-600 dark:text-rose-400 font-medium mt-1">
+              {{ commentFileError }}
+            </div>
+
             <div class="mt-3 flex justify-end">
               <button
                 class="btn-primary btn-sm sm:h-10 sm:px-4 sm:text-sm w-full sm:w-auto"
-                :disabled="!newComment.body.trim() || submitting"
+                :disabled="(!newComment.body.trim() && !commentFile) || submitting"
                 @click="submitComment"
               >
                 <span v-if="submitting" class="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin"></span>
@@ -273,7 +304,15 @@
             <div>
               <dt class="font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wide text-[11px]">{{ t('th_requester') }}</dt>
               <dd class="mt-1">
-                <div class="flex items-center gap-2">
+                <select
+                  v-if="auth.isAdmin"
+                  :value="ticket.requester_id || ''"
+                  class="input text-xs py-1 h-8"
+                  @change="updateRequester($event.target.value)"
+                >
+                  <option v-for="u in requesters" :key="u.id" :value="u.id">{{ u.name }} ({{ u.email }})</option>
+                </select>
+                <div v-else class="flex items-center gap-2">
                   <div class="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center text-[10px] font-semibold shrink-0">
                     {{ ticket.requester?.name?.charAt(0).toUpperCase() || '?' }}
                   </div>
@@ -337,9 +376,13 @@ const ticket = ref(null)
 const loading = ref(false)
 const error = ref('')
 const assignees = ref([])
+const requesters = ref([])
 const submitting = ref(false)
 const uploadingFile = ref(false)
 const uploadError = ref('')
+const commentFile = ref(null)
+const commentFileError = ref('')
+const commentFileInput = ref(null)
 const toast = reactive({ message: '', type: 'success', visible: false })
 const pendingAction = ref(null)
 
@@ -389,13 +432,16 @@ const fetchTicket = async () => {
   }
 }
 
-const fetchAssignees = async () => {
+const fetchUsers = async () => {
   if (!auth.isAdmin) return
   try {
     const res = await userService.list()
-    assignees.value = (res.data || []).filter((u) => u.role === 'agent' || u.role === 'admin')
+    const users = res.data || []
+    assignees.value = users.filter((u) => u.role === 'agent' || u.role === 'admin')
+    requesters.value = users
   } catch {
     assignees.value = []
+    requesters.value = []
   }
 }
 
@@ -452,13 +498,61 @@ const updateAssignee = async (assigneeId) => {
   }
 }
 
+const updateRequester = async (requesterId) => {
+  if (!requesterId) return
+  try {
+    const res = await ticketService.update(ticket.value.id, { requester_id: requesterId })
+    ticket.value = res.data
+    showToast(t('requester_updated'))
+  } catch (err) {
+    showToast(err.message || t('requester_update_failed'), 'error')
+  }
+}
+
+const handleCommentFileSelected = (event) => {
+  const file = event.target.files?.[0]
+  if (!file) return
+
+  commentFileError.value = ''
+  if (file.size > 5 * 1024 * 1024) {
+    commentFileError.value = t('file_too_large')
+    if (commentFileInput.value) commentFileInput.value.value = ''
+    commentFile.value = null
+    return
+  }
+
+  const allowed = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'pdf', 'txt', 'csv', 'doc', 'docx', 'xls', 'xlsx', 'zip']
+  const ext = file.name.split('.').pop()?.toLowerCase()
+  if (!ext || !allowed.includes(ext)) {
+    commentFileError.value = t('attachment_upload_failed') + ' (Tipe berkas tidak didukung)'
+    if (commentFileInput.value) commentFileInput.value.value = ''
+    commentFile.value = null
+    return
+  }
+
+  commentFile.value = file
+}
+
+const removeCommentFile = () => {
+  commentFile.value = null
+  commentFileError.value = ''
+  if (commentFileInput.value) commentFileInput.value.value = ''
+}
+
 const submitComment = async () => {
-  if (!newComment.body.trim()) return
+  if (!newComment.body.trim() && !commentFile.value) return
   submitting.value = true
   try {
-    await ticketService.addComment(ticket.value.id, newComment)
+    if (newComment.body.trim()) {
+      await ticketService.addComment(ticket.value.id, newComment)
+    }
+    if (commentFile.value) {
+      await ticketService.uploadAttachment(ticket.value.id, commentFile.value)
+    }
     newComment.body = ''
     newComment.is_internal = false
+    removeCommentFile()
+    showToast(t('comment_sent'))
     await fetchTicket()
   } catch (err) {
     showToast(err.message || t('comment_failed'), 'error')
@@ -529,7 +623,7 @@ let detailUnsubs = []
 
 onMounted(async () => {
   await fetchTicket()
-  await fetchAssignees()
+  await fetchUsers()
 
   // Real-time auto-reload for this ticket
   detailUnsubs.push(

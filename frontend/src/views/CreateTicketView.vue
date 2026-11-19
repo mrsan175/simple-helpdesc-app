@@ -30,6 +30,15 @@
           </select>
         </div>
 
+        <div v-if="auth.isAdmin && requesters.length > 0" class="space-y-1.5">
+          <label for="requester" class="label">{{ t('ticket_requester') }}</label>
+          <select id="requester" v-model="form.requester_id" class="input">
+            <option v-for="u in requesters" :key="u.id" :value="u.id">
+              {{ u.name }} ({{ u.email }})
+            </option>
+          </select>
+        </div>
+
         <div class="space-y-1.5">
           <label for="description" class="label">{{ t('ticket_desc') }} <span class="text-rose-500">*</span></label>
           <textarea
@@ -103,23 +112,37 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ticketService } from '../services/ticket.service'
+import { userService } from '../services/user.service'
+import { useAuthStore } from '../stores/auth'
 import { useI18n } from '../i18n'
 
 const router = useRouter()
+const auth = useAuthStore()
 const { t } = useI18n()
 const submitting = ref(false)
 const error = ref('')
 const fileError = ref('')
 const selectedFile = ref(null)
 const fileInputRef = ref(null)
+const requesters = ref([])
 
 const form = reactive({
   title: '',
   category: 'IT Support',
-  description: ''
+  description: '',
+  requester_id: auth.user?.id || ''
+})
+
+onMounted(async () => {
+  if (auth.isAdmin) {
+    try {
+      const res = await userService.list()
+      requesters.value = res.data || []
+    } catch {}
+  }
 })
 
 const formatFileSize = (bytes) => {
@@ -172,7 +195,15 @@ const handleSubmit = async () => {
 
   submitting.value = true
   try {
-    const res = await ticketService.create(form)
+    const payload = {
+      title: form.title,
+      category: form.category,
+      description: form.description
+    }
+    if (auth.isAdmin && form.requester_id) {
+      payload.requester_id = form.requester_id
+    }
+    const res = await ticketService.create(payload)
     const ticketId = res.data.id
 
     // If optional file was selected, upload it

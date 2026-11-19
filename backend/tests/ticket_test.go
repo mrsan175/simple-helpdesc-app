@@ -287,6 +287,54 @@ func TestAgentCannotChangePriorityOrAssignee(t *testing.T) {
 	}
 }
 
+func TestAdminCanChangeRequester(t *testing.T) {
+	_, tickets, _, ur, _, _, _ := newHarness()
+	ctx := context.Background()
+	reqA, agent, admin := seedUsers(t, ur)
+
+	// Create second requester
+	reqB := &domain.User{
+		ID:        "user-req-b",
+		Name:      "Requester B",
+		Email:     "reqb@test.id",
+		Role:      domain.RoleRequester,
+		CreatedAt: time.Now().UTC(),
+	}
+	_ = ur.Create(ctx, reqB)
+
+	// Requester A creates ticket
+	ticket, err := tickets.Create(ctx, reqA, domain.CreateTicketReq{
+		Title:       "Issue by A",
+		Description: "Details",
+		Category:    "Software",
+	})
+	if err != nil {
+		t.Fatalf("create ticket: %v", err)
+	}
+	if ticket.RequesterID != reqA.ID {
+		t.Fatalf("expected requester A, got %s", ticket.RequesterID)
+	}
+
+	// Requester B tries to change requester -> forbidden
+	if _, err := tickets.Update(ctx, reqB, ticket.ID, domain.UpdateTicketReq{RequesterID: &reqB.ID}); !errors.Is(err, domain.ErrForbidden) {
+		t.Fatalf("requester changing requester should be forbidden, got %v", err)
+	}
+
+	// Agent tries to change requester -> forbidden
+	if _, err := tickets.Update(ctx, agent, ticket.ID, domain.UpdateTicketReq{RequesterID: &reqB.ID}); !errors.Is(err, domain.ErrForbidden) {
+		t.Fatalf("agent changing requester should be forbidden, got %v", err)
+	}
+
+	// Admin changes requester to Requester B -> allowed
+	updated, err := tickets.Update(ctx, admin, ticket.ID, domain.UpdateTicketReq{RequesterID: &reqB.ID})
+	if err != nil {
+		t.Fatalf("admin changing requester failed: %v", err)
+	}
+	if updated.RequesterID != reqB.ID {
+		t.Fatalf("expected updated requester B, got %s", updated.RequesterID)
+	}
+}
+
 func TestSLAOverdueCalculation(t *testing.T) {
 	_, tickets, _, ur, tr, _, _ := newHarness()
 	ctx := context.Background()

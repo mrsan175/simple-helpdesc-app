@@ -230,8 +230,8 @@ func (r *TicketRepository) List(ctx context.Context, filter domain.TicketFilter)
 func (r *TicketRepository) Update(ctx context.Context, ticket *domain.Ticket) error {
 	query := `
 		UPDATE tickets 
-		SET title = $1, description = $2, category = $3, priority = $4, status = $5, assignee_id = $6, updated_at = $7
-		WHERE id = $8`
+		SET title = $1, description = $2, category = $3, priority = $4, status = $5, assignee_id = $6, requester_id = $7, updated_at = $8
+		WHERE id = $9`
 	res, err := r.DB.ExecContext(
 		ctx,
 		query,
@@ -241,6 +241,7 @@ func (r *TicketRepository) Update(ctx context.Context, ticket *domain.Ticket) er
 		ticket.Priority,
 		ticket.Status,
 		ticket.AssigneeID,
+		ticket.RequesterID,
 		ticket.UpdatedAt,
 		ticket.ID,
 	)

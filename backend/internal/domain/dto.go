@@ -29,12 +29,14 @@ type CreateTicketReq struct {
 	Description string         `json:"description" binding:"required"`
 	Category    string         `json:"category" binding:"required"`
 	Priority    TicketPriority `json:"priority"`
+	RequesterID *string        `json:"requester_id,omitempty"`
 }
 
 type UpdateTicketReq struct {
-	Status     *TicketStatus   `json:"status,omitempty"`
-	Priority   *TicketPriority `json:"priority,omitempty"`
-	AssigneeID *string         `json:"assignee_id,omitempty"`
+	Status      *TicketStatus   `json:"status,omitempty"`
+	Priority    *TicketPriority `json:"priority,omitempty"`
+	AssigneeID  *string         `json:"assignee_id,omitempty"`
+	RequesterID *string         `json:"requester_id,omitempty"`
 }
 
 type CreateCommentReq struct {

@@ -47,6 +47,9 @@ Semua akun menggunakan password yang sama: **`Password123!`**.
   - Saat Agent mengubah status dari `open` ke `in_progress`, tiket **otomatis di-assign** ke Agent tersebut.
   - Role Agent **tidak memiliki dropdown** Assignee & Prioritas (hanya-baca / read-only). Jika dicoba kirim via API, backend menolak dengan `403 Forbidden`.
   - Hanya **Admin** yang memiliki dropdown untuk mengubah Assignee dan Prioritas secara manual.
+- **Pelapor (Requester):**
+  - Admin dapat membuat tiket atas nama user lain (`requester_id` pada `POST /api/tickets`) dan mengubah pelapor tiket (`requester_id` pada `PATCH /api/tickets/{id}`).
+  - Requester & Agent tidak dapat mengubah pelapor (ditolak `403 Forbidden`).
 - **Kolom Requester di Tabel (`/tickets`):**
   - Hanya muncul pada role **Agent** dan **Admin** (menampilkan Nama dan Email sekaligus dalam 1 kolom).
   - Disembunyikan untuk role Requester.
@@ -83,6 +86,7 @@ Semua akun menggunakan password yang sama: **`Password123!`**.
 1. **Lampiran Berkas (File Attachments):**
    - Mendukung unggah berkas hingga 5MB pada tiket dengan validasi tipe berkas (ekstensi gambar, PDF, dokumen aman) dan enkapsulasi UUID nama file pada storage server.
    - Endpoint `POST /api/tickets/{id}/attachments` dan `GET /api/attachments/{id}/download`.
+   - Berkas dapat dilampirkan saat membuat tiket maupun saat mengirim komentar.
 2. **Notifikasi Real-Time (Server-Sent Events / SSE):**
    - In-memory event broker tanpa dependensi eksternal via endpoint `GET /api/events`.
    - Fan-out notifikasi instan untuk tiket dibuat, tiket diupdate, komentar baru, dan lampiran baru, langsung memperbarui data di antarmuka pengguna tanpa refresh.
