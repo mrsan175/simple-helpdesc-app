@@ -88,6 +88,8 @@ export const translations = {
     ticket_priority: 'Prioritas',
     ticket_desc: 'Deskripsi Lengkap',
     ticket_desc_ph: 'Jelaskan detail kendala yang dialami, langkah yang sudah dicoba, dll...',
+    ticket_attachment: 'Lampiran Berkas (Opsional)',
+    optional_label: 'Opsional',
     submit_ticket: 'Kirim Tiket',
 
     // Ticket Detail
@@ -265,6 +267,8 @@ export const translations = {
     ticket_priority: 'Priority',
     ticket_desc: 'Full Description',
     ticket_desc_ph: 'Explain problem details, steps already taken, etc...',
+    ticket_attachment: 'File Attachment (Optional)',
+    optional_label: 'Optional',
     submit_ticket: 'Submit Ticket',
 
     // Ticket Detail
