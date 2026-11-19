@@ -108,83 +108,83 @@
 
     <!-- Desktop Table -->
     <div v-else class="card overflow-hidden hidden md:block">
-      <div class="overflow-x-auto">
-        <table class="w-full text-xs">
-          <thead class="border-b bg-slate-50 dark:bg-slate-800/60">
-            <tr>
-              <th class="text-left font-medium text-slate-500 dark:text-slate-400 px-3 py-2">{{ t('th_id') }}</th>
-              <th class="text-left font-medium text-slate-500 dark:text-slate-400 px-3 py-2">{{ t('th_keterangan') }}</th>
-              <th v-if="!isRequester" class="text-left font-medium text-slate-500 dark:text-slate-400 px-3 py-2">{{ t('th_requester') }}</th>
-              <th class="text-left font-medium text-slate-500 dark:text-slate-400 px-3 py-2">{{ t('th_status') }}</th>
-              <th class="text-left font-medium text-slate-500 dark:text-slate-400 px-3 py-2">{{ t('th_priority') }}</th>
-              <th class="text-left font-medium text-slate-500 dark:text-slate-400 px-3 py-2">{{ t('th_assignee') }}</th>
-              <th class="text-left font-medium text-slate-500 dark:text-slate-400 px-3 py-2">{{ t('th_created') }}</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-            <template v-for="ticket in tickets" :key="ticket.id">
-              <tr
-                class="hover:bg-slate-50/80 dark:hover:bg-slate-800/60 cursor-pointer transition-colors"
-                @click="toggleExpand(ticket.id)"
-              >
-                <td class="px-3 py-2 align-top whitespace-nowrap">
-                  <div class="flex items-center gap-1.5">
-                    <svg
-                      class="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0 transition-transform"
-                      :class="isExpanded(ticket.id) ? 'rotate-90' : ''"
-                      fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                    >
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                    </svg>
-                    <span class="font-mono text-[11px] text-slate-400 dark:text-slate-500">{{ ticket.id.slice(0, 8) }}</span>
-                  </div>
-                </td>
-                <td class="px-3 py-2 align-top max-w-[22rem]">
-                  <div class="min-w-0">
-                    <p class="font-medium text-slate-900 dark:text-slate-100 leading-snug truncate">{{ ticket.title }}</p>
-                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      {{ ticket.category }}
-                      <span v-if="ticket.is_overdue" class="ml-1.5 text-rose-600 font-medium">{{ t('sla_badge') }}</span>
-                    </p>
-                  </div>
-                </td>
-                <td v-if="!isRequester" class="px-3 py-2 align-top">
-                  <p class="font-medium text-slate-900 dark:text-slate-100 leading-tight truncate max-w-[12rem]">{{ ticket.requester?.name || '-' }}</p>
-                  <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-[12rem]">{{ ticket.requester?.email || '-' }}</p>
-                </td>
-                <td class="px-3 py-2 align-top whitespace-nowrap"><StatusBadge :status="ticket.status" /></td>
-                <td class="px-3 py-2 align-top whitespace-nowrap"><PriorityBadge :priority="ticket.priority" /></td>
-                <td class="px-3 py-2 align-top text-slate-600 dark:text-slate-300 whitespace-nowrap">
+      <table class="w-full table-fixed text-xs">
+        <thead class="border-b bg-slate-50 dark:bg-slate-800/60">
+          <tr>
+            <th class="w-20 text-left font-medium text-slate-500 dark:text-slate-400 px-2.5 py-2">{{ t('th_id') }}</th>
+            <th class="text-left font-medium text-slate-500 dark:text-slate-400 px-2.5 py-2">{{ t('th_keterangan') }}</th>
+            <th v-if="!isRequester" class="w-36 lg:w-44 text-left font-medium text-slate-500 dark:text-slate-400 px-2.5 py-2">{{ t('th_requester') }}</th>
+            <th class="w-24 text-left font-medium text-slate-500 dark:text-slate-400 px-2.5 py-2">{{ t('th_status') }}</th>
+            <th class="w-20 text-left font-medium text-slate-500 dark:text-slate-400 px-2.5 py-2">{{ t('th_priority') }}</th>
+            <th class="w-28 lg:w-36 text-left font-medium text-slate-500 dark:text-slate-400 px-2.5 py-2">{{ t('th_assignee') }}</th>
+            <th class="w-20 lg:w-24 text-left font-medium text-slate-500 dark:text-slate-400 px-2.5 py-2">{{ t('th_created') }}</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+          <template v-for="ticket in tickets" :key="ticket.id">
+            <tr
+              class="hover:bg-slate-50/80 dark:hover:bg-slate-800/60 cursor-pointer transition-colors"
+              @click="toggleExpand(ticket.id)"
+            >
+              <td class="px-2.5 py-2 align-top whitespace-nowrap">
+                <div class="flex items-center gap-1.5">
+                  <svg
+                    class="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0 transition-transform"
+                    :class="isExpanded(ticket.id) ? 'rotate-90' : ''"
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                  <span class="font-mono text-[11px] text-slate-400 dark:text-slate-500">{{ ticket.id.slice(0, 8) }}</span>
+                </div>
+              </td>
+              <td class="px-2.5 py-2 align-top">
+                <div class="min-w-0">
+                  <p class="font-medium text-slate-900 dark:text-slate-100 leading-snug truncate">{{ ticket.title }}</p>
+                  <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                    {{ ticket.category }}
+                    <span v-if="ticket.is_overdue" class="ml-1.5 text-rose-600 font-medium">{{ t('sla_badge') }}</span>
+                  </p>
+                </div>
+              </td>
+              <td v-if="!isRequester" class="px-2.5 py-2 align-top">
+                <p class="font-medium text-slate-900 dark:text-slate-100 leading-tight truncate">{{ ticket.requester?.name || '-' }}</p>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">{{ ticket.requester?.email || '-' }}</p>
+              </td>
+              <td class="px-2.5 py-2 align-top whitespace-nowrap"><StatusBadge :status="ticket.status" /></td>
+              <td class="px-2.5 py-2 align-top whitespace-nowrap"><PriorityBadge :priority="ticket.priority" /></td>
+              <td class="px-2.5 py-2 align-top text-slate-600 dark:text-slate-300">
+                <p class="truncate" :title="ticket.assignee?.name">
                   <span v-if="ticket.assignee">{{ ticket.assignee.name }}</span>
                   <span v-else class="text-slate-400 dark:text-slate-500 italic">{{ t('unassigned_label') }}</span>
-                </td>
-                <td class="px-3 py-2 align-top text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                  <p>{{ formatDate(ticket.created_at) }}</p>
-                  <p class="text-[11px] text-slate-400 dark:text-slate-500">{{ formatTime(ticket.created_at) }}</p>
-                </td>
-              </tr>
-              <tr v-if="isExpanded(ticket.id)" class="bg-slate-50/70 dark:bg-slate-800/40">
-                <td :colspan="isRequester ? 6 : 7" class="px-3 sm:px-4 py-3 border-t border-slate-100 dark:border-slate-800">
-                  <div class="flex items-start justify-between gap-4">
-                    <div class="min-w-0">
-                      <p class="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">{{ t('description') }}</p>
-                      <p class="text-xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed break-words">
-                        {{ ticket.description || '-' }}
-                      </p>
-                    </div>
-                    <button
-                      class="btn btn-outline btn-sm shrink-0"
-                      @click.stop="$router.push(`/tickets/${ticket.id}`)"
-                    >
-                      {{ t('details_btn') }}
-                    </button>
+                </p>
+              </td>
+              <td class="px-2.5 py-2 align-top text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                <p>{{ formatDate(ticket.created_at) }}</p>
+                <p class="text-[11px] text-slate-400 dark:text-slate-500">{{ formatTime(ticket.created_at) }}</p>
+              </td>
+            </tr>
+            <tr v-if="isExpanded(ticket.id)" class="bg-slate-50/70 dark:bg-slate-800/40">
+              <td :colspan="isRequester ? 6 : 7" class="px-3 sm:px-4 py-3 border-t border-slate-100 dark:border-slate-800">
+                <div class="flex items-start justify-between gap-4">
+                  <div class="min-w-0">
+                    <p class="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">{{ t('description') }}</p>
+                    <p class="text-xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed break-words">
+                      {{ ticket.description || '-' }}
+                    </p>
                   </div>
-                </td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
-      </div>
+                  <button
+                    class="btn btn-outline btn-sm shrink-0"
+                    @click.stop="$router.push(`/tickets/${ticket.id}`)"
+                  >
+                    {{ t('details_btn') }}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
     </div>
 
     <!-- Mobile Card List -->
