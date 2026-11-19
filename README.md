@@ -69,7 +69,35 @@ Semua akun menggunakan password yang sama: **`Password123!`**.
 
 ---
 
-## 4. Cara Menjalankan Aplikasi
+### 3.5. Navigasi & Halaman Default Berdasarkan Role
+- **Admin:**
+  - Halaman default/landing saat login atau mengakses root URL (`/`) adalah **Statistik Admin** (`/admin/stats`).
+  - Menu **Statistik** ditempatkan pada posisi teratas di sidebar desktop dan drawer mobile.
+- **Agent & Requester:**
+  - Karena tidak memiliki akses ke halaman statistik khusus, halaman default saat login maupun root URL (`/`) adalah **Daftar Tiket** (`/tickets`).
+
+---
+
+## 4. Fitur Bonus (Bonus Features)
+
+1. **Lampiran Berkas (File Attachments):**
+   - Mendukung unggah berkas hingga 5MB pada tiket dengan validasi tipe berkas (ekstensi gambar, PDF, dokumen aman) dan enkapsulasi UUID nama file pada storage server.
+   - Endpoint `POST /api/tickets/{id}/attachments` dan `GET /api/attachments/{id}/download`.
+2. **Notifikasi Real-Time (Server-Sent Events / SSE):**
+   - In-memory event broker tanpa dependensi eksternal via endpoint `GET /api/events`.
+   - Fan-out notifikasi instan untuk tiket dibuat, tiket diupdate, komentar baru, dan lampiran baru, langsung memperbarui data di antarmuka pengguna tanpa refresh.
+3. **Pelacakan SLA (Service Level Agreement):**
+   - Otomatis menghitung status overdue berdasarkan tingkat urgensi tiket (Urgent 4 jam, High 8 jam, Medium 24 jam, Low 48 jam).
+   - Indikator visual badge **Terlambat / Overdue** muncul otomatis pada detail dan daftar tiket.
+4. **Halaman Statistik Admin Terperinci:**
+   - Menyajikan KPI operasional: Total Tiket, Tingkat Penyelesaian (Resolution Rate), SLA Breach Rate, Distribusi Kategori & Prioritas, serta Matriks Beban Kerja Agen (Workload).
+   - Endpoint khusus `GET /api/admin/stats` dengan proteksi role `admin`.
+5. **CI/CD Pipeline (GitHub Actions):**
+   - Workflow `.github/workflows/ci.yml` otomatis menjalankan Go lint & race detector test, serta validasi build Vue 3 pada setiap push dan pull request.
+
+---
+
+## 6. Cara Menjalankan Aplikasi
 
 ### Opsi A: Menggunakan Docker Compose (Direkomendasikan)
 
@@ -112,48 +140,66 @@ Layanan yang berjalan:
 
 ---
 
-## 5. Ringkasan API Endpoints
+## 7. Ringkasan API Endpoints
 
 ### Autentikasi
 - `POST /api/auth/register` – Pendaftaran Requester baru (default role: `requester`)
 - `POST /api/auth/login` – Login & penerbitan Bearer Token JWT
 - `GET  /api/me` – Profil pengguna saat ini
 
-### Tiket
+### Tiket & Komentar
 - `GET   /api/tickets` – Daftar tiket (dukungan: `page`, `limit`, `status`, `priority`, `assignee_id`, `search`, `sort_by`, `order`)
 - `POST  /api/tickets` – Buat tiket baru (khusus `requester` & `admin`)
 - `GET   /api/tickets/{id}` – Detail tiket beserta thread komentar
 - `PATCH /api/tickets/{id}` – Update tiket (transisi status, prioritas/assignee khusus admin)
 - `POST  /api/tickets/{id}/comments` – Tambah komentar (mendukung `is_internal: true` untuk agent/admin)
-- `GET   /api/stats` – Statistik ringkasan tiket (Open, In Progress, Resolved, Urgent)
+
+### Lampiran & Realtime
+- `POST /api/tickets/{id}/attachments` – Unggah berkas lampiran (multipart/form-data, maks 5MB)
+- `GET  /api/attachments/{id}/download` – Unduh berkas lampiran (validasi otorisasi tiket)
+- `GET  /api/events` – Server-Sent Events (SSE) stream notifikasi real-time
+
+### Statistik (Role-Based)
+- `GET /api/stats` – Statistik ringkasan tiket (Open, In Progress, Resolved, Urgent)
+- `GET /api/tickets/stats` – Alias statistik ringkasan tiket
+- `GET /api/admin/stats` – Statistik komprehensif operasional & beban kerja (khusus role `admin`)
 
 ### Pengguna (Admin Only)
 - `GET   /api/users` – Daftar seluruh pengguna (bisa filter role, agent hanya dapat melihat daftar assignee)
-- `PATCH /api/users/{id}/role` – Ubah role pengguna
+- `PATCH /api/users/{id}/role` – Ubah role pengguna (dilengkapi proteksi admin terakhir)
 
 ---
 
-## 6. Pengujian Otomatis (Automated Tests)
+## 8. Pengujian Otomatis (Automated Tests)
 
-Suite pengujian unit backend mencakup skenario kritis:
+Suite pengujian backend mencakup seluruh layer arsitektur (service, state machine, RBAC, dan HTTP router API handler):
 
 ```bash
 cd backend
-go test -v ./tests/...
+go test -v -race ./...
 ```
 
-Cakupan pengujian:
-1. `TestAuthRegisterAndLogin` – Pendaftaran dan autentikasi JWT
-2. `TestTicketIsolation` – Isolasi data tiket antar-requester
-3. `TestValidStatusTransitions` – Alur siklus hidup tiket yang sah
-4. `TestInvalidStatusTransitions` – Penolakan transisi ilegal di state machine
-5. `TestInternalNoteSecurity` – Pencegahan kebocoran catatan internal ke requester
-6. `TestAgentCannotCreateTicket` – Verifikasi larangan role agent membuat tiket
-7. `TestAgentCannotChangePriorityOrAssignee` – Verifikasi proteksi field prioritas/assignee bagi agent
+Cakupan 16 test cases:
+1. `TestAPI_AuthEndpoints` – Pendaftaran, login, dan validasi sesi `/api/me`
+2. `TestAPI_TicketsEndpoints` – Siklus CRUD tiket, otorisasi role, dan filter
+3. `TestAPI_CommentsEndpoint` – Komentar publik dan proteksi catatan internal
+4. `TestAPI_AttachmentsUploadAndDownload` – Upload multipart, validasi ekstensi/ukuran, dan download berkas
+5. `TestAPI_StatsEndpoints` – Otorisasi endpoint statistik umum dan statistik admin
+6. `TestAPI_UsersEndpoints` – Manajemen pengguna dan proteksi hak akses role admin
+7. `TestAPI_EventsEndpoint` – Koneksi SSE streaming `/api/events`
+8. `TestAuthRegisterAndLogin` – Pendaftaran dan autentikasi JWT di layer service
+9. `TestTicketIsolation` – Isolasi data tiket antar-requester
+10. `TestValidStatusTransitions` – Alur siklus hidup tiket yang sah
+11. `TestInvalidStatusTransitions` – Penolakan transisi ilegal di state machine
+12. `TestInternalNoteSecurity` – Pencegahan kebocoran catatan internal ke requester
+13. `TestAgentCannotCreateTicket` – Verifikasi larangan role agent membuat tiket
+14. `TestAgentCannotChangePriorityOrAssignee` – Verifikasi proteksi field prioritas/assignee bagi agent
+15. `TestSLAOverdueCalculation` – Kalkulasi SLA overdue untuk tiket urgent/high/medium/low
+16. `TestAttachmentUploadAndAccess` – Validasi tipe berkas dan otorisasi akses lampiran
 
 ---
 
-## 7. Struktur Direktori (Monorepo)
+## 9. Struktur Direktori (Monorepo)
 
 ```
 simple-journey-indonesia/

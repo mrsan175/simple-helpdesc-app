@@ -102,7 +102,8 @@ const handleLogin = async () => {
   loading.value = true
   try {
     await auth.login({ email: form.email, password: form.password })
-    const redirect = route.query.redirect || '/tickets'
+    // Role-based default: admin → stats, everyone else → tickets
+    const redirect = route.query.redirect || (auth.user?.role === 'admin' ? '/admin/stats' : '/tickets')
     router.push(redirect)
   } catch (err) {
     error.value = err.message || t('login_failed')

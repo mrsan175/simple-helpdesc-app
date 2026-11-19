@@ -21,7 +21,10 @@ const routes = [
     children: [
       {
         path: '',
-        redirect: '/tickets'
+        redirect: () => {
+          const auth = useAuthStore()
+          return auth.user?.role === 'admin' ? '/admin/stats' : '/tickets'
+        }
       },
       {
         path: 'tickets',
@@ -55,7 +58,12 @@ const routes = [
   },
   {
     path: '/:pathMatch(.*)*',
-    redirect: '/tickets'
+    redirect: () => {
+      const auth = useAuthStore()
+      return auth.isAuthenticated
+        ? (auth.user?.role === 'admin' ? '/admin/stats' : '/tickets')
+        : '/login'
+    }
   }
 ]
 
@@ -71,10 +79,12 @@ router.beforeEach((to, from, next) => {
     return next({ name: 'login', query: { redirect: to.fullPath } })
   }
 
+  // Authenticated user hitting login/register → role-based landing
   if (to.meta.guestOnly && auth.isAuthenticated) {
-    return next({ name: 'tickets' })
+    return next(auth.user?.role === 'admin' ? '/admin/stats' : '/tickets')
   }
 
+  // Role-protected routes
   if (to.meta.roles && !to.meta.roles.includes(auth.user?.role)) {
     return next({ name: 'tickets' })
   }

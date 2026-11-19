@@ -74,7 +74,7 @@ const handleRegister = async () => {
   loading.value = true
   try {
     await auth.register(form)
-    router.push('/tickets')
+    router.push('/')
   } catch (err) {
     error.value = err.message || t('register_failed')
   } finally {
