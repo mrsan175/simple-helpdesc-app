@@ -28,7 +28,7 @@ type CreateTicketReq struct {
 	Title       string         `json:"title" binding:"required"`
 	Description string         `json:"description" binding:"required"`
 	Category    string         `json:"category" binding:"required"`
-	Priority    TicketPriority `json:"priority" binding:"required"`
+	Priority    TicketPriority `json:"priority"`
 }
 
 type UpdateTicketReq struct {

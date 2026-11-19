@@ -19,27 +19,15 @@
           />
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div class="space-y-1.5">
-            <label for="category" class="label">{{ t('ticket_category') }} <span class="text-rose-500">*</span></label>
-            <select id="category" v-model="form.category" class="input">
-              <option value="IT Support">IT Support</option>
-              <option value="Hardware">Hardware</option>
-              <option value="Software">Software</option>
-              <option value="Network">Network</option>
-              <option value="HR/Facility">HR/Facility</option>
-            </select>
-          </div>
-
-          <div class="space-y-1.5">
-            <label for="priority" class="label">{{ t('ticket_priority') }} <span class="text-rose-500">*</span></label>
-            <select id="priority" v-model="form.priority" class="input">
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="urgent">Urgent</option>
-            </select>
-          </div>
+        <div class="space-y-1.5">
+          <label for="category" class="label">{{ t('ticket_category') }} <span class="text-rose-500">*</span></label>
+          <select id="category" v-model="form.category" class="input">
+            <option value="IT Support">IT Support</option>
+            <option value="Hardware">Hardware</option>
+            <option value="Software">Software</option>
+            <option value="Network">Network</option>
+            <option value="HR/Facility">HR/Facility</option>
+          </select>
         </div>
 
         <div class="space-y-1.5">
@@ -131,7 +119,6 @@ const fileInputRef = ref(null)
 const form = reactive({
   title: '',
   category: 'IT Support',
-  priority: 'medium',
   description: ''
 })
 
@@ -178,7 +165,7 @@ const removeFile = () => {
 const handleSubmit = async () => {
   error.value = ''
   fileError.value = ''
-  if (!form.title || !form.description || !form.category || !form.priority) {
+  if (!form.title || !form.description || !form.category) {
     error.value = t('required_fields')
     return
   }

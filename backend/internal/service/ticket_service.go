@@ -110,13 +110,18 @@ func (s *TicketService) Create(ctx context.Context, actor *domain.User, req doma
 	if actor.Role == domain.RoleAgent {
 		return nil, domain.ErrForbidden
 	}
+	priority := req.Priority
+	if priority == "" {
+		// Requester tidak menentukan prioritas; agent menetapkannya saat mengambil tiket.
+		priority = domain.PriorityMedium
+	}
 	now := time.Now().UTC()
 	ticket := &domain.Ticket{
 		ID:          uuid.NewString(),
 		Title:       req.Title,
 		Description: req.Description,
 		Category:    req.Category,
-		Priority:    req.Priority,
+		Priority:    priority,
 		Status:      domain.StatusOpen,
 		RequesterID: actor.ID,
 		CreatedAt:   now,
@@ -152,8 +157,11 @@ func (s *TicketService) Update(ctx context.Context, actor *domain.User, id strin
 		if req.AssigneeID != nil {
 			return nil, domain.ErrForbidden
 		}
-		// Agent hanya boleh mengubah prioritas tiket yang sedang dikerjakannya.
-		if req.Priority != nil && (ticket.AssigneeID == nil || *ticket.AssigneeID != actor.ID) {
+		// Agent boleh menentukan prioritas saat mengambil tiket (in_progress)
+		// atau untuk tiket yang sudah di-assign kepadanya.
+		isTakingTicket := req.Status != nil && *req.Status == domain.StatusInProgress
+		isAssignedToMe := ticket.AssigneeID != nil && *ticket.AssigneeID == actor.ID
+		if req.Priority != nil && !isTakingTicket && !isAssignedToMe {
 			return nil, domain.ErrForbidden
 		}
 	}
