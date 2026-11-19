@@ -51,9 +51,18 @@ func SetupRouter(cfg RouterConfig) *gin.Engine {
 			tickets.POST("/:id/attachments", cfg.TicketHandler.UploadAttachment)
 		}
 
+		comments := api.Group("/comments", middleware.Auth(cfg.JWTSecret))
+		{
+			comments.PATCH("/:id", cfg.TicketHandler.UpdateComment)
+			comments.DELETE("/:id", cfg.TicketHandler.DeleteComment)
+			comments.POST("/:id/attachments", cfg.TicketHandler.UploadCommentAttachment)
+		}
+
 		attachments := api.Group("/attachments", middleware.Auth(cfg.JWTSecret))
 		{
 			attachments.GET("/:id/download", cfg.TicketHandler.DownloadAttachment)
+			attachments.PATCH("/:id", cfg.TicketHandler.ReplaceAttachment)
+			attachments.DELETE("/:id", cfg.TicketHandler.DeleteAttachment)
 		}
 
 		api.GET("/events", middleware.Auth(cfg.JWTSecret), cfg.TicketHandler.StreamEvents)

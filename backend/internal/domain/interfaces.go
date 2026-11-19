@@ -21,14 +21,20 @@ type TicketRepository interface {
 }
 
 type AttachmentRepository interface {
-	Create(ctx context.Context, att *Attachment) error
+	Create(ctx context.Context, actor *User, att *Attachment) error
 	ListByTicket(ctx context.Context, ticketID string) ([]*Attachment, error)
+	ListByComment(ctx context.Context, commentID string) ([]*Attachment, error)
 	FindByID(ctx context.Context, id string) (*Attachment, error)
+	Replace(ctx context.Context, actor *User, att *Attachment) (oldPath string, err error)
+	Delete(ctx context.Context, actor *User, id string) (*Attachment, error)
 }
 
 type CommentRepository interface {
-	Create(ctx context.Context, comment *Comment) error
+	Create(ctx context.Context, actor *User, comment *Comment) error
 	ListByTicket(ctx context.Context, ticketID string, includeInternal bool) ([]*Comment, error)
+	FindByID(ctx context.Context, id string) (*Comment, error)
+	Update(ctx context.Context, actor *User, comment *Comment) error
+	Delete(ctx context.Context, actor *User, id string) ([]*Attachment, error)
 }
 
 type AuthService interface {
@@ -42,10 +48,18 @@ type TicketService interface {
 	Create(ctx context.Context, actor *User, req CreateTicketReq) (*Ticket, error)
 	Update(ctx context.Context, actor *User, id string, req UpdateTicketReq) (*Ticket, error)
 	AddComment(ctx context.Context, actor *User, ticketID string, req CreateCommentReq) (*Comment, error)
+	UpdateComment(ctx context.Context, actor *User, id string, req UpdateCommentReq) (*Comment, error)
+	DeleteComment(ctx context.Context, actor *User, id string) ([]*Attachment, error)
 	Stats(ctx context.Context, actor *User) (*StatsResponse, error)
 	AdminStats(ctx context.Context, actor *User) (*AdminDetailedStats, error)
 	AddAttachment(ctx context.Context, actor *User, ticketID string, att *Attachment) (*Attachment, error)
 	GetAttachment(ctx context.Context, actor *User, attachmentID string) (*Attachment, error)
+	CheckAttachmentUpload(ctx context.Context, actor *User, ticketID string) error
+	CheckCommentAttachmentUpload(ctx context.Context, actor *User, commentID string) error
+	CheckAttachmentUpdate(ctx context.Context, actor *User, id string) error
+	AddCommentAttachment(ctx context.Context, actor *User, commentID string, att *Attachment) (*Attachment, error)
+	ReplaceAttachment(ctx context.Context, actor *User, id string, file *Attachment) (*Attachment, string, error)
+	DeleteAttachment(ctx context.Context, actor *User, id string) (*Attachment, error)
 }
 
 type UserService interface {

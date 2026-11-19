@@ -15,6 +15,8 @@ func newHarness() (*service.AuthService, *service.TicketService, *service.UserSe
 	tr := NewMockTicketRepo()
 	cr := NewMockCommentRepo()
 	ar := NewMockAttachmentRepo()
+	cr.attachments = ar
+	ar.comments = cr
 	auth := service.NewAuthService(ur, "test-secret", time.Hour)
 	tickets := service.NewTicketService(tr, cr, ur, ar, 2)
 	users := service.NewUserService(ur)

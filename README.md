@@ -175,6 +175,7 @@ Arti jenis permintaan pada kolom **Metode**:
 - **GET:** melihat atau mengambil informasi.
 - **POST:** mengirim data, misalnya membuat laporan atau masuk ke akun.
 - **PATCH:** mengubah sebagian informasi yang sudah ada.
+- **DELETE:** menghapus informasi atau berkas.
 
 Tulisan `{id}` harus diganti dengan kode unik laporan, lampiran, atau pengguna yang dituju, sesuai keterangannya.
 
@@ -195,18 +196,30 @@ Tulisan `{id}` harus diganti dengan kode unik laporan, lampiran, atau pengguna y
 | GET | `/api/tickets/{id}` | Pemilik laporan, petugas, pengelola | Melihat isi laporan, komentar, dan lampirannya. |
 | PATCH | `/api/tickets/{id}` | Sesuai peran dan kepemilikan laporan | Mengubah status sesuai aturan. Prioritas hanya diatur petugas/pengelola; pembagian tugas dan penggantian pelapor hanya oleh pengelola. |
 | POST | `/api/tickets/{id}/comments` | Pemilik laporan, petugas, pengelola | Menambahkan komentar. Catatan internal hanya bisa dibuat dan dibaca petugas/pengelola. |
+| PATCH | `/api/comments/{id}` | Penulis komentar | Mengedit isi komentar miliknya. `{id}` adalah kode komentar. |
+| DELETE | `/api/comments/{id}` | Penulis komentar | Menghapus komentar miliknya beserta berkas pada komentar tersebut. `{id}` adalah kode komentar. |
 
-Pada tabel ini, `{id}` adalah kode unik laporan. Daftar laporan mendukung pencarian judul, penyaringan, pengurutan, dan pembagian hasil ke beberapa halaman.
+Pada alamat `/api/tickets/{id}`, `{id}` adalah kode unik laporan. Daftar laporan mendukung pencarian judul, penyaringan, pengurutan, dan pembagian hasil ke beberapa halaman. Komentar hanya dapat diedit atau dihapus oleh penulisnya, selama ia masih dapat mengakses laporan tersebut; pengelola tidak dapat mengedit komentar orang lain.
 
 ### Lampiran dan pemberitahuan
 
 | Metode | Alamat endpoint | Siapa yang boleh memakai | Kegunaan |
 |---|---|---|---|
-| POST | `/api/tickets/{id}/attachments` | Pemilik laporan, petugas, pengelola | Mengunggah file ke laporan yang dituju, maksimal 5 MiB per file. `{id}` adalah kode laporan. |
+| POST | `/api/tickets/{id}/attachments` | Pemilik laporan | Menambahkan lampiran utama, maksimal 5 MiB per file. `{id}` adalah kode laporan. |
+| POST | `/api/comments/{id}/attachments` | Penulis komentar | Menambahkan berkas pada komentar miliknya. `{id}` adalah kode komentar. |
+| PATCH | `/api/attachments/{id}` | Pemilik lampiran sesuai keterangannya di bawah | Mengganti berkas dengan file baru, maksimal 5 MiB. `{id}` adalah kode lampiran. |
+| DELETE | `/api/attachments/{id}` | Pemilik lampiran sesuai keterangannya di bawah | Menghapus berkas lampiran. `{id}` adalah kode lampiran. |
 | GET | `/api/attachments/{id}/download` | Pemilik laporan terkait, petugas, pengelola | Mengunduh file lampiran. `{id}` adalah kode lampiran, bukan kode laporan. |
 | GET | `/api/events` | Pengguna yang sudah masuk | Menerima pemberitahuan perubahan laporan sesuai hak aksesnya. |
 
-**Penting:** file lampiran melekat pada laporan, bukan pada komentar. File yang dikirim bersama catatan internal tetap bisa dilihat pemilik laporan. Jangan melampirkan file rahasia melalui cara tersebut.
+Ada dua tempat untuk menyimpan berkas:
+
+- **Lampiran utama laporan:** hanya pemilik laporan (pelapor yang tercatat pada tiket) yang boleh menambah, mengganti, atau menghapusnya. Petugas maupun pengelola tidak mendapat pengecualian atas aturan ini.
+- **Lampiran komentar:** petugas mengirim berkas bersama komentar. Berkas tampil pada komentar tersebut, bukan pada daftar lampiran utama, dan hanya penulis komentar yang boleh mengganti atau menghapusnya. Tulis isi komentar sebelum mengirim berkas.
+
+Berkas pada **catatan internal** hanya dapat diunduh petugas dan pengelola yang dapat mengakses tiket; pelapor tidak bisa melihat atau mengunduhnya. Semua tindakan tetap memerlukan akses ke tiket terkait.
+
+Lampiran lama tetap disimpan sebagai lampiran utama karena sebelumnya tidak ada catatan yang menghubungkannya ke komentar. Berkas lama tidak otomatis dianggap sebagai lampiran catatan internal.
 
 ### Ringkasan laporan dan pengaturan pengguna
 
@@ -228,7 +241,7 @@ Pada tabel ini, `{id}` adalah kode unik laporan. Daftar laporan mendukung pencar
 
 - Jika peran pengguna diubah, pengguna perlu masuk ulang untuk mendapatkan kode akses dengan peran terbaru. Kode akses lama tidak langsung dicabut oleh perubahan tersebut.
 - Angka laporan terlambat pada `/api/stats` dan `/api/tickets/stats` belum dihitung. Gunakan statistik pengelola untuk melihat jumlah tersebut.
-- Belum tersedia layanan untuk menghapus laporan, mengubah/menghapus komentar, mengatur ulang password, atau memperbarui kode akses tanpa masuk ulang.
+- Belum tersedia layanan untuk menghapus laporan, mengatur ulang password, atau memperbarui kode akses tanpa masuk ulang.
 
 ## 4. Cara Menjalankan Pengujian
 
@@ -252,9 +265,18 @@ Hal yang diperiksa antara lain:
 - Tindakan yang boleh dilakukan setiap peran.
 - Perubahan status laporan dan perlindungan catatan internal.
 - Pengiriman dan pengunduhan lampiran, termasuk batas ukuran 5 MiB.
+- Izin tambah/ganti/hapus lampiran dan komentar, serta perlindungan berkas catatan internal.
 - Penandaan laporan terlambat dan penerima pemberitahuan.
 
-Pengujian ini memakai data tiruan, sehingga **tidak perlu menyalakan aplikasi, Docker, atau PostgreSQL, maupun membuat file pengaturan `.env`**. Koneksi internet mungkin diperlukan saat pertama kali mengunduh kebutuhan pengujian. Pengujian ini belum memeriksa penyimpanan data ke PostgreSQL yang sebenarnya.
+Perintah dasar di atas memakai data tiruan, sehingga **tidak perlu menyalakan aplikasi, Docker, atau PostgreSQL, maupun membuat file pengaturan `.env`**. Koneksi internet mungkin diperlukan saat pertama kali mengunduh kebutuhan pengujian. Pengujian PostgreSQL tambahan dilewati jika belum diaktifkan.
+
+**Pilihan tambahan bagi pengembang:** untuk memeriksa perubahan penyimpanan, hubungan komentar–lampiran, dan izin saat pemilik tiket berubah, pasang PostgreSQL dengan perintah `initdb` dan `postgres` yang tersedia di terminal. Lalu jalankan dari folder `backend/`:
+
+```bash
+TEST_POSTGRES_LOCAL=1 go test -v ./tests -run '^TestPostgres'
+```
+
+Perintah ini membuat penyimpanan PostgreSQL sementara untuk pengujian, bukan memakai data aplikasi utama, lalu membersihkannya setelah selesai.
 
 ### Memeriksa apakah tampilan aplikasi bisa disiapkan
 

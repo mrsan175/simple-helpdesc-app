@@ -51,7 +51,7 @@
         </div>
 
         <!-- Optional Attachment Upload -->
-        <div class="space-y-1.5 pt-1 border-t border-slate-100 dark:border-slate-800">
+        <div v-if="canAttachTicket" class="space-y-1.5 pt-1 border-t border-slate-100 dark:border-slate-800">
           <div class="flex items-center justify-between">
             <label class="label text-slate-700 dark:text-slate-300">
               {{ t('attachments') }}
@@ -95,6 +95,8 @@
           </div>
         </div>
 
+        <p v-else class="text-xs text-slate-500 dark:text-slate-400">{{ t('ticket_attachment_owner_only') }}</p>
+
         <div v-if="error" class="rounded-md bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-sm p-3">
           {{ error }}
         </div>
@@ -112,7 +114,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ticketService } from '../services/ticket.service'
 import { userService } from '../services/user.service'
@@ -134,6 +136,11 @@ const form = reactive({
   category: 'IT Support',
   description: '',
   requester_id: auth.user?.id || ''
+})
+
+const canAttachTicket = computed(() => form.requester_id === auth.user?.id)
+watch(canAttachTicket, (allowed) => {
+  if (!allowed) removeFile()
 })
 
 onMounted(async () => {

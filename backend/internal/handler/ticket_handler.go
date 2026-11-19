@@ -176,15 +176,46 @@ func (h *TicketHandler) AdminStats(c *gin.Context) {
 }
 
 func (h *TicketHandler) UploadAttachment(c *gin.Context) {
+	h.uploadAttachment(c, false, false)
+}
+
+func (h *TicketHandler) UploadCommentAttachment(c *gin.Context) {
+	h.uploadAttachment(c, true, false)
+}
+
+func (h *TicketHandler) ReplaceAttachment(c *gin.Context) {
+	h.uploadAttachment(c, false, true)
+}
+
+func (h *TicketHandler) uploadAttachment(c *gin.Context, forComment, replace bool) {
 	user := middleware.CurrentUser(c)
 	if user == nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
 
-	// Max 5 MB
+	// Authorize before parsing multipart data or writing any files. The service
+	// checks again when persisting in case access changed during the upload.
+	var err error
+	switch {
+	case replace:
+		err = h.ticketService.CheckAttachmentUpdate(c.Request.Context(), user, c.Param("id"))
+	case forComment:
+		err = h.ticketService.CheckCommentAttachmentUpload(c.Request.Context(), user, c.Param("id"))
+	default:
+		err = h.ticketService.CheckAttachmentUpload(c.Request.Context(), user, c.Param("id"))
+	}
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+
 	const maxSize = 5 << 20
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxSize+(1<<20))
 	fileHeader, err := c.FormFile("file")
+	if c.Request.MultipartForm != nil {
+		defer c.Request.MultipartForm.RemoveAll()
+	}
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "File tidak ditemukan"})
 		return
@@ -218,10 +249,7 @@ func (h *TicketHandler) UploadAttachment(c *gin.Context) {
 		return
 	}
 
-	uploadDir := h.uploadDir
-	if uploadDir == "" {
-		uploadDir = "./uploads"
-	}
+	uploadDir := h.attachmentDir()
 	if err := os.MkdirAll(uploadDir, 0o755); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyiapkan direktori berkas"})
 		return
@@ -233,6 +261,7 @@ func (h *TicketHandler) UploadAttachment(c *gin.Context) {
 	storedPath := filepath.Join(uploadDir, storedFilename)
 
 	if err := c.SaveUploadedFile(fileHeader, storedPath); err != nil {
+		h.removeAttachmentFile(storedPath)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyimpan berkas"})
 		return
 	}
@@ -244,14 +273,27 @@ func (h *TicketHandler) UploadAttachment(c *gin.Context) {
 		ContentType: expectedMime,
 	}
 
-	created, err := h.ticketService.AddAttachment(c.Request.Context(), user, c.Param("id"), att)
+	var saved *domain.Attachment
+	var oldPath string
+	status := http.StatusCreated
+	switch {
+	case replace:
+		saved, oldPath, err = h.ticketService.ReplaceAttachment(c.Request.Context(), user, c.Param("id"), att)
+		status = http.StatusOK
+	case forComment:
+		saved, err = h.ticketService.AddCommentAttachment(c.Request.Context(), user, c.Param("id"), att)
+	default:
+		saved, err = h.ticketService.AddAttachment(c.Request.Context(), user, c.Param("id"), att)
+	}
 	if err != nil {
-		_ = os.Remove(storedPath)
+		h.removeAttachmentFile(storedPath)
 		respondError(c, err)
 		return
 	}
-
-	respondData(c, http.StatusCreated, created)
+	if oldPath != "" && oldPath != storedPath {
+		h.removeAttachmentFile(oldPath)
+	}
+	respondData(c, status, saved)
 }
 
 func (h *TicketHandler) DownloadAttachment(c *gin.Context) {

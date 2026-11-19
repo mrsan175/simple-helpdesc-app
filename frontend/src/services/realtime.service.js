@@ -1,7 +1,7 @@
 /**
  * SSE realtime client.
  * Usage: const { onEvent, disconnect } = useRealtime()
- * Events: 'ticket_created', 'ticket_updated', 'comment_added', 'attachment_added'
+ * Handles ticket, comment, and attachment lifecycle events.
  */
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
@@ -19,7 +19,7 @@ export function useRealtime() {
 
     _es.onmessage = (e) => dispatch(e.type || 'message', e.data)
 
-    for (const eventType of ['ticket_created', 'ticket_updated', 'comment_added', 'attachment_added']) {
+    for (const eventType of ['ticket_created', 'ticket_updated', 'comment_added', 'comment_updated', 'comment_deleted', 'attachment_added', 'attachment_updated', 'attachment_deleted']) {
       _es.addEventListener(eventType, (e) => dispatch(eventType, e.data))
     }
 

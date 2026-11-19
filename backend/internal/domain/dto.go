@@ -44,6 +44,10 @@ type CreateCommentReq struct {
 	IsInternal bool   `json:"is_internal"`
 }
 
+type UpdateCommentReq struct {
+	Body string `json:"body" binding:"required"`
+}
+
 type UpdateUserRoleReq struct {
 	Role UserRole `json:"role" binding:"required"`
 }

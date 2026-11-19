@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"math"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -89,11 +90,23 @@ func (s *TicketService) Get(ctx context.Context, actor *domain.User, id string) 
 	if err != nil {
 		return nil, err
 	}
+	if comments == nil {
+		comments = make([]*domain.Comment, 0)
+	}
+	for _, comment := range comments {
+		comment.Attachments, err = s.commentAttachments(ctx, comment.ID)
+		if err != nil {
+			return nil, err
+		}
+	}
 	ticket.Comments = comments
 
 	attachments, err := s.attachmentRepo.ListByTicket(ctx, id)
 	if err != nil {
 		return nil, err
+	}
+	if attachments == nil {
+		attachments = make([]*domain.Attachment, 0)
 	}
 	ticket.Attachments = attachments
 
@@ -249,17 +262,22 @@ func (s *TicketService) AddComment(ctx context.Context, actor *domain.User, tick
 		}
 	}
 
-	comment := &domain.Comment{
-		ID:         uuid.NewString(),
-		TicketID:   ticketID,
-		AuthorID:   actor.ID,
-		Body:       req.Body,
-		IsInternal: req.IsInternal,
-		CreatedAt:  time.Now().UTC(),
-		Author:     actor,
+	if strings.TrimSpace(req.Body) == "" {
+		return nil, domain.ErrValidation
 	}
 
-	if err := s.commentRepo.Create(ctx, comment); err != nil {
+	comment := &domain.Comment{
+		Attachments: make([]*domain.Attachment, 0),
+		ID:          uuid.NewString(),
+		TicketID:    ticketID,
+		AuthorID:    actor.ID,
+		Body:        req.Body,
+		IsInternal:  req.IsInternal,
+		CreatedAt:   time.Now().UTC(),
+		Author:      actor,
+	}
+
+	if err := s.commentRepo.Create(ctx, actor, comment); err != nil {
 		return nil, err
 	}
 
@@ -272,55 +290,6 @@ func (s *TicketService) AddComment(ctx context.Context, actor *domain.User, tick
 		map[string]string{"ticket_id": ticketID},
 	)
 	return comment, nil
-}
-
-func (s *TicketService) AddAttachment(ctx context.Context, actor *domain.User, ticketID string, att *domain.Attachment) (*domain.Attachment, error) {
-	ticket, err := s.ticketRepo.FindByID(ctx, ticketID)
-	if err != nil {
-		return nil, err
-	}
-
-	if actor.Role == domain.RoleRequester && ticket.RequesterID != actor.ID {
-		return nil, domain.ErrForbidden
-	}
-
-	att.ID = uuid.NewString()
-	att.TicketID = ticketID
-	att.UploaderID = actor.ID
-	att.CreatedAt = time.Now().UTC()
-	att.Uploader = actor
-
-	if err := s.attachmentRepo.Create(ctx, att); err != nil {
-		return nil, err
-	}
-
-	realtime.DefaultBroker.BroadcastTo(
-		realtime.Audience{
-			Roles:   []string{string(domain.RoleAgent), string(domain.RoleAdmin)},
-			UserIDs: []string{ticket.RequesterID},
-		},
-		"attachment_added",
-		map[string]string{"ticket_id": ticketID},
-	)
-	return att, nil
-}
-
-func (s *TicketService) GetAttachment(ctx context.Context, actor *domain.User, attachmentID string) (*domain.Attachment, error) {
-	att, err := s.attachmentRepo.FindByID(ctx, attachmentID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Verify actor can see the ticket
-	ticket, err := s.ticketRepo.FindByID(ctx, att.TicketID)
-	if err != nil {
-		return nil, err
-	}
-	if actor.Role == domain.RoleRequester && ticket.RequesterID != actor.ID {
-		return nil, domain.ErrForbidden
-	}
-
-	return att, nil
 }
 
 func (s *TicketService) Stats(ctx context.Context, actor *domain.User) (*domain.StatsResponse, error) {

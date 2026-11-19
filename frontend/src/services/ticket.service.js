@@ -16,6 +16,29 @@ export const ticketService = {
   addComment(id, payload) {
     return api.post(`/tickets/${id}/comments`, payload).then((r) => r.data)
   },
+  updateComment(id, payload) {
+    return api.patch(`/comments/${id}`, payload).then((r) => r.data)
+  },
+  deleteComment(id) {
+    return api.delete(`/comments/${id}`)
+  },
+  uploadCommentAttachment(commentId, file) {
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.post(`/comments/${commentId}/attachments`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }).then((r) => r.data)
+  },
+  replaceAttachment(id, file) {
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.patch(`/attachments/${id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }).then((r) => r.data)
+  },
+  deleteAttachment(id) {
+    return api.delete(`/attachments/${id}`)
+  },
   uploadAttachment(id, file) {
     const formData = new FormData()
     formData.append('file', file)

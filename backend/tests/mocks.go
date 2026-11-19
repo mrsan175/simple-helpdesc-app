@@ -178,18 +178,22 @@ func (m *MockTicketRepo) AdminStats(ctx context.Context, slaHours float64) (*dom
 }
 
 type MockCommentRepo struct {
-	mu       sync.Mutex
-	comments []*domain.Comment
+	mu          sync.Mutex
+	comments    []*domain.Comment
+	attachments *MockAttachmentRepo
+	UpdateErr   error
+	DeleteErr   error
 }
 
 func NewMockCommentRepo() *MockCommentRepo {
 	return &MockCommentRepo{}
 }
 
-func (m *MockCommentRepo) Create(ctx context.Context, c *domain.Comment) error {
+func (m *MockCommentRepo) Create(ctx context.Context, actor *domain.User, c *domain.Comment) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.comments = append(m.comments, c)
+	cp := *c
+	m.comments = append(m.comments, &cp)
 	return nil
 }
 
@@ -204,24 +208,106 @@ func (m *MockCommentRepo) ListByTicket(ctx context.Context, ticketID string, inc
 		if !includeInternal && c.IsInternal {
 			continue
 		}
-		res = append(res, c)
+		cp := *c
+		res = append(res, &cp)
 	}
 	return res, nil
+}
+
+func (m *MockCommentRepo) FindByID(ctx context.Context, id string) (*domain.Comment, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, c := range m.comments {
+		if c.ID == id {
+			cp := *c
+			return &cp, nil
+		}
+	}
+	return nil, domain.ErrNotFound
+}
+
+func (m *MockCommentRepo) Update(ctx context.Context, actor *domain.User, c *domain.Comment) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.UpdateErr != nil {
+		return m.UpdateErr
+	}
+	for i, existing := range m.comments {
+		if existing.ID == c.ID {
+			cp := *existing
+			cp.Body, cp.UpdatedAt = c.Body, c.UpdatedAt
+			m.comments[i] = &cp
+			return nil
+		}
+	}
+	return domain.ErrNotFound
+}
+
+func (m *MockCommentRepo) Delete(ctx context.Context, actor *domain.User, id string) ([]*domain.Attachment, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.DeleteErr != nil {
+		return nil, m.DeleteErr
+	}
+	for i, c := range m.comments {
+		if c.ID != id {
+			continue
+		}
+		var files []*domain.Attachment
+		if m.attachments != nil {
+			m.attachments.mu.Lock()
+			kept := make([]*domain.Attachment, 0)
+			for _, a := range m.attachments.attachments {
+				if a.CommentID != nil && *a.CommentID == id {
+					cp := *a
+					files = append(files, &cp)
+				} else {
+					kept = append(kept, a)
+				}
+			}
+			m.attachments.attachments = kept
+			m.attachments.mu.Unlock()
+		}
+		m.comments = append(m.comments[:i], m.comments[i+1:]...)
+		return files, nil
+	}
+	return nil, domain.ErrNotFound
 }
 
 type MockAttachmentRepo struct {
 	mu          sync.Mutex
 	attachments []*domain.Attachment
+	comments    *MockCommentRepo
+	CreateErr   error
+	ReplaceErr  error
+	DeleteErr   error
 }
 
 func NewMockAttachmentRepo() *MockAttachmentRepo {
 	return &MockAttachmentRepo{}
 }
 
-func (m *MockAttachmentRepo) Create(ctx context.Context, att *domain.Attachment) error {
+func (m *MockAttachmentRepo) Create(ctx context.Context, actor *domain.User, att *domain.Attachment) error {
+	if att.CommentID != nil && m.comments != nil {
+		m.comments.mu.Lock()
+		defer m.comments.mu.Unlock()
+		found := false
+		for _, c := range m.comments.comments {
+			if c.ID == *att.CommentID {
+				found = true
+			}
+		}
+		if !found {
+			return domain.ErrNotFound
+		}
+	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.attachments = append(m.attachments, att)
+	if m.CreateErr != nil {
+		return m.CreateErr
+	}
+	cp := *att
+	m.attachments = append(m.attachments, &cp)
 	return nil
 }
 
@@ -230,11 +316,57 @@ func (m *MockAttachmentRepo) ListByTicket(ctx context.Context, ticketID string) 
 	defer m.mu.Unlock()
 	var res []*domain.Attachment
 	for _, a := range m.attachments {
-		if a.TicketID == ticketID {
-			res = append(res, a)
+		if a.TicketID == ticketID && a.CommentID == nil {
+			cp := *a
+			res = append(res, &cp)
 		}
 	}
 	return res, nil
+}
+
+func (m *MockAttachmentRepo) ListByComment(ctx context.Context, id string) ([]*domain.Attachment, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	res := make([]*domain.Attachment, 0)
+	for _, a := range m.attachments {
+		if a.CommentID != nil && *a.CommentID == id {
+			cp := *a
+			res = append(res, &cp)
+		}
+	}
+	return res, nil
+}
+
+func (m *MockAttachmentRepo) Replace(ctx context.Context, actor *domain.User, att *domain.Attachment) (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.ReplaceErr != nil {
+		return "", m.ReplaceErr
+	}
+	for i, a := range m.attachments {
+		if a.ID == att.ID {
+			cp := *att
+			m.attachments[i] = &cp
+			return a.FilePath, nil
+		}
+	}
+	return "", domain.ErrNotFound
+}
+
+func (m *MockAttachmentRepo) Delete(ctx context.Context, actor *domain.User, id string) (*domain.Attachment, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.DeleteErr != nil {
+		return nil, m.DeleteErr
+	}
+	for i, a := range m.attachments {
+		if a.ID == id {
+			cp := *a
+			m.attachments = append(m.attachments[:i], m.attachments[i+1:]...)
+			return &cp, nil
+		}
+	}
+	return nil, domain.ErrNotFound
 }
 
 func (m *MockAttachmentRepo) FindByID(ctx context.Context, id string) (*domain.Attachment, error) {
@@ -242,7 +374,8 @@ func (m *MockAttachmentRepo) FindByID(ctx context.Context, id string) (*domain.A
 	defer m.mu.Unlock()
 	for _, a := range m.attachments {
 		if a.ID == id {
-			return a, nil
+			cp := *a
+			return &cp, nil
 		}
 	}
 	return nil, domain.ErrNotFound
