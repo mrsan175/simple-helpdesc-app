@@ -10,14 +10,15 @@ import (
 	"backend/internal/service"
 )
 
-func newHarness() (*service.AuthService, *service.TicketService, *service.UserService, *MockUserRepo, *MockTicketRepo, *MockCommentRepo) {
+func newHarness() (*service.AuthService, *service.TicketService, *service.UserService, *MockUserRepo, *MockTicketRepo, *MockCommentRepo, *MockAttachmentRepo) {
 	ur := NewMockUserRepo()
 	tr := NewMockTicketRepo()
 	cr := NewMockCommentRepo()
+	ar := NewMockAttachmentRepo()
 	auth := service.NewAuthService(ur, "test-secret", time.Hour)
-	tickets := service.NewTicketService(tr, cr, ur, 2)
+	tickets := service.NewTicketService(tr, cr, ur, ar, 2)
 	users := service.NewUserService(ur)
-	return auth, tickets, users, ur, tr, cr
+	return auth, tickets, users, ur, tr, cr, ar
 }
 
 func seedUsers(t *testing.T, ur *MockUserRepo) (requester *domain.User, agent *domain.User, admin *domain.User) {
@@ -35,7 +36,7 @@ func seedUsers(t *testing.T, ur *MockUserRepo) (requester *domain.User, agent *d
 }
 
 func TestAuthRegisterAndLogin(t *testing.T) {
-	auth, _, _, _, _, _ := newHarness()
+	auth, _, _, _, _, _, _ := newHarness()
 	ctx := context.Background()
 
 	reg, err := auth.Register(ctx, domain.RegisterReq{
@@ -67,7 +68,7 @@ func TestAuthRegisterAndLogin(t *testing.T) {
 }
 
 func TestTicketIsolation(t *testing.T) {
-	_, tickets, _, ur, _, _ := newHarness()
+	_, tickets, _, ur, _, _, _ := newHarness()
 	ctx := context.Background()
 	requester, _, _ := seedUsers(t, ur)
 
@@ -96,7 +97,7 @@ func TestTicketIsolation(t *testing.T) {
 }
 
 func TestValidStatusTransitions(t *testing.T) {
-	_, tickets, _, ur, _, _ := newHarness()
+	_, tickets, _, ur, _, _, _ := newHarness()
 	ctx := context.Background()
 	requester, agent, _ := seedUsers(t, ur)
 
@@ -142,7 +143,7 @@ func TestValidStatusTransitions(t *testing.T) {
 }
 
 func TestInvalidStatusTransitions(t *testing.T) {
-	_, tickets, _, ur, _, _ := newHarness()
+	_, tickets, _, ur, _, _, _ := newHarness()
 	ctx := context.Background()
 	requester, agent, _ := seedUsers(t, ur)
 
@@ -176,7 +177,7 @@ func TestInvalidStatusTransitions(t *testing.T) {
 }
 
 func TestInternalNoteSecurity(t *testing.T) {
-	_, tickets, _, ur, _, _ := newHarness()
+	_, tickets, _, ur, _, _, _ := newHarness()
 	ctx := context.Background()
 	requester, agent, _ := seedUsers(t, ur)
 
@@ -224,7 +225,7 @@ func TestInternalNoteSecurity(t *testing.T) {
 }
 
 func TestAgentCannotCreateTicket(t *testing.T) {
-	_, tickets, _, ur, _, _ := newHarness()
+	_, tickets, _, ur, _, _, _ := newHarness()
 	ctx := context.Background()
 	_, agent, _ := seedUsers(t, ur)
 
@@ -240,7 +241,7 @@ func TestAgentCannotCreateTicket(t *testing.T) {
 }
 
 func TestAgentCannotChangePriorityOrAssignee(t *testing.T) {
-	_, tickets, _, ur, _, _ := newHarness()
+	_, tickets, _, ur, _, _, _ := newHarness()
 	ctx := context.Background()
 	requester, agent, _ := seedUsers(t, ur)
 
@@ -283,5 +284,71 @@ func TestAgentCannotChangePriorityOrAssignee(t *testing.T) {
 	}
 	if updated.Priority != domain.PriorityUrgent {
 		t.Fatalf("expected priority urgent, got %s", updated.Priority)
+	}
+}
+
+func TestSLAOverdueCalculation(t *testing.T) {
+	_, tickets, _, ur, tr, _, _ := newHarness()
+	ctx := context.Background()
+	requester, _, _ := seedUsers(t, ur)
+
+	// Create urgent ticket
+	ticket, err := tickets.Create(ctx, requester, domain.CreateTicketReq{
+		Title:       "Server down",
+		Description: "Production outage",
+		Category:    "Network",
+		Priority:    domain.PriorityUrgent,
+	})
+	if err != nil {
+		t.Fatalf("create ticket: %v", err)
+	}
+
+	// Backdate ticket to 3 hours ago (SLA is 2 hours)
+	tr.mu.Lock()
+	tr.tickets[ticket.ID].CreatedAt = time.Now().Add(-3 * time.Hour)
+	tr.mu.Unlock()
+
+	detail, err := tickets.Get(ctx, requester, ticket.ID)
+	if err != nil {
+		t.Fatalf("get ticket: %v", err)
+	}
+	if !detail.IsOverdue {
+		t.Fatal("expected ticket to be marked overdue")
+	}
+}
+
+func TestAttachmentUploadAndAccess(t *testing.T) {
+	_, tickets, _, ur, _, _, _ := newHarness()
+	ctx := context.Background()
+	requester, _, _ := seedUsers(t, ur)
+
+	other := &domain.User{ID: "u-other", Name: "Other", Email: "other@test.id", Role: domain.RoleRequester, CreatedAt: time.Now()}
+	_ = ur.Create(ctx, other)
+
+	ticket, _ := tickets.Create(ctx, requester, domain.CreateTicketReq{
+		Title:       "Attachment test",
+		Description: "Has screenshot",
+		Category:    "Software",
+		Priority:    domain.PriorityLow,
+	})
+
+	att, err := tickets.AddAttachment(ctx, requester, ticket.ID, &domain.Attachment{
+		Filename:    "screenshot.png",
+		FilePath:    "uploads/dummy.png",
+		FileSize:    1024,
+		ContentType: "image/png",
+	})
+	if err != nil {
+		t.Fatalf("add attachment: %v", err)
+	}
+
+	// Other requester cannot download attachment
+	if _, err := tickets.GetAttachment(ctx, other, att.ID); !errors.Is(err, domain.ErrForbidden) {
+		t.Fatalf("expected ErrForbidden for other requester, got %v", err)
+	}
+
+	// Owner can get attachment
+	if got, err := tickets.GetAttachment(ctx, requester, att.ID); err != nil || got.ID != att.ID {
+		t.Fatalf("owner should get attachment: %v", err)
 	}
 }

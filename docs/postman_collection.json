@@ -1,13 +1,29 @@
 {
   "info": {
     "name": "Simple Journey Helpdesk API",
-    "description": "Internal helpdesk system for PT Simple Journey Indonesia",
-    "schema": "https://schema.getpostman.com/json/collection/v2.2.1/collection.json"
+    "description": "Internal helpdesk system for PT Simple Journey Indonesia. Semua endpoint kecuali auth wajib header `Authorization: Bearer <token>`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "baseUrl",
       "value": "http://localhost:8080/api"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "ticketId",
+      "value": ""
+    },
+    {
+      "key": "attachmentId",
+      "value": ""
+    },
+    {
+      "key": "userId",
+      "value": ""
     }
   ],
   "item": [
@@ -18,7 +34,9 @@
           "name": "Register",
           "request": {
             "method": "POST",
-            "header": { "Content-Type": "application/json" },
+            "header": {
+              "Content-Type": "application/json"
+            },
             "url": "{{baseUrl}}/auth/register",
             "body": {
               "mode": "raw",
@@ -30,12 +48,35 @@
           "name": "Login",
           "request": {
             "method": "POST",
-            "header": { "Content-Type": "application/json" },
+            "header": {
+              "Content-Type": "application/json"
+            },
             "url": "{{baseUrl}}/auth/login",
             "body": {
               "mode": "raw",
               "raw": "{\"email\": \"admin@simplejourney.id\", \"password\": \"Password123!\"}"
             }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.environment.set(\"token\", json.data.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Current User (/me)",
+          "request": {
+            "method": "GET",
+            "header": {
+              "Authorization": "Bearer {{token}}"
+            },
+            "url": "{{baseUrl}}/me"
           }
         }
       ]
@@ -47,18 +88,221 @@
           "name": "List Tickets",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/tickets"
+            "header": {
+              "Authorization": "Bearer {{token}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/tickets?page=1&limit=10&status=open&priority=urgent&search=server&sort_by=created_at&order=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["tickets"],
+              "query": [
+                {"key": "page", "value": "1"},
+                {"key": "limit", "value": "10"},
+                {"key": "status", "value": "open"},
+                {"key": "priority", "value": "urgent"},
+                {"key": "search", "value": "server"},
+                {"key": "sort_by", "value": "created_at"},
+                {"key": "order", "value": "desc"}
+              ]
+            }
           }
         },
         {
           "name": "Create Ticket",
           "request": {
             "method": "POST",
-            "header": { "Content-Type": "application/json" },
+            "header": {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer {{token}}"
+            },
             "url": "{{baseUrl}}/tickets",
             "body": {
               "mode": "raw",
               "raw": "{\"title\": \"Laptop cannot connect\", \"description\": \"Wi-Fi not working\", \"category\": \"Network\", \"priority\": \"high\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.environment.set(\"ticketId\", json.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Ticket Detail",
+          "request": {
+            "method": "GET",
+            "header": {
+              "Authorization": "Bearer {{token}}"
+            },
+            "url": "{{baseUrl}}/tickets/{{ticketId}}"
+          }
+        },
+        {
+          "name": "Update Ticket (status/priority/assignee)",
+          "request": {
+            "method": "PATCH",
+            "header": {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer {{token}}"
+            },
+            "url": "{{baseUrl}}/tickets/{{ticketId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\": \"in_progress\", \"priority\": \"urgent\"}"
+            }
+          }
+        },
+        {
+          "name": "Add Comment",
+          "request": {
+            "method": "POST",
+            "header": {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer {{token}}"
+            },
+            "url": "{{baseUrl}}/tickets/{{ticketId}}/comments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"body\": \"Sedang ditangani, mohon tunggu.\", \"is_internal\": false}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Attachments",
+      "item": [
+        {
+          "name": "Upload Attachment",
+          "request": {
+            "method": "POST",
+            "header": {
+              "Authorization": "Bearer {{token}}"
+            },
+            "url": "{{baseUrl}}/tickets/{{ticketId}}/attachments",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "path/to/your/file.pdf"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.environment.set(\"attachmentId\", json.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Download Attachment",
+          "request": {
+            "method": "GET",
+            "header": {
+              "Authorization": "Bearer {{token}}"
+            },
+            "url": "{{baseUrl}}/attachments/{{attachmentId}}/download"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Realtime (SSE)",
+      "item": [
+        {
+          "name": "Subscribe Events (SSE)",
+          "request": {
+            "method": "GET",
+            "header": {
+              "Authorization": "Bearer {{token}}"
+            },
+            "url": "{{baseUrl}}/events"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Statistics",
+      "item": [
+        {
+          "name": "Stats (role-based)",
+          "request": {
+            "method": "GET",
+            "header": {
+              "Authorization": "Bearer {{token}}"
+            },
+            "url": "{{baseUrl}}/stats"
+          }
+        },
+        {
+          "name": "Stats (alias)",
+          "request": {
+            "method": "GET",
+            "header": {
+              "Authorization": "Bearer {{token}}"
+            },
+            "url": "{{baseUrl}}/tickets/stats"
+          }
+        },
+        {
+          "name": "Admin Detailed Stats",
+          "request": {
+            "method": "GET",
+            "header": {
+              "Authorization": "Bearer {{token}}"
+            },
+            "url": "{{baseUrl}}/admin/stats"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users (Admin only)",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": {
+              "Authorization": "Bearer {{token}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users?role=agent",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"],
+              "query": [
+                {"key": "role", "value": "agent"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update User Role",
+          "request": {
+            "method": "PATCH",
+            "header": {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer {{token}}"
+            },
+            "url": "{{baseUrl}}/users/{{userId}}/role",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"role\": \"agent\"}"
             }
           }
         }

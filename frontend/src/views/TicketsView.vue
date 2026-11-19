@@ -285,11 +285,12 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { ticketService } from '../services/ticket.service'
 import { userService } from '../services/user.service'
+import { useRealtime } from '../services/realtime.service'
 import StatusBadge from '../components/shared/StatusBadge.vue'
 import PriorityBadge from '../components/shared/PriorityBadge.vue'
 import LoadingSkeleton from '../components/shared/LoadingSkeleton.vue'
@@ -432,5 +433,32 @@ const formatTime = (value) => {
 onMounted(async () => {
   await fetchTickets()
   await Promise.all([fetchStats(), fetchAssignees()])
+
+  // Real-time subscribe for current user's ticket changes
+  const myTickets = tickets.value?.filter((t) => {
+    // Only requester sees their own tickets in the list
+    return true
+  }) || []
+
+  const listUnsubs = []
+  if (myTickets?.length > 0) {
+    myTickets.forEach((t) => {
+      listUnsubs.push(
+        realtime.onEvent('ticket_updated', (p) => {
+          if (p?.id === t.id) fetchTickets()
+        })
+      )
+      listUnsubs.push(
+        realtime.onEvent('comment_added', (p) => {
+          if (p?.ticket_id === t.id) fetchTickets()
+        })
+      )
+      listUnsubs.push(
+        realtime.onEvent('attachment_added', (p) => {
+          if (p?.ticket_id === t.id) fetchTickets()
+        })
+      )
+    })
+  }
 })
 </script>

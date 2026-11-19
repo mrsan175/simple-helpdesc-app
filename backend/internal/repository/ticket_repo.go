@@ -267,21 +267,91 @@ func (r *TicketRepository) Stats(ctx context.Context, requesterID string) (*doma
 
 	query := fmt.Sprintf(`
 		SELECT
+			COALESCE(COUNT(*), 0) AS total_count,
 			COALESCE(SUM(CASE WHEN status = 'open' THEN 1 ELSE 0 END), 0) AS open_count,
 			COALESCE(SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END), 0) AS progress_count,
 			COALESCE(SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END), 0) AS resolved_count,
-			COALESCE(SUM(CASE WHEN priority = 'urgent' AND status != 'closed' THEN 1 ELSE 0 END), 0) AS urgent_count
+			COALESCE(SUM(CASE WHEN status = 'closed' THEN 1 ELSE 0 END), 0) AS closed_count,
+			COALESCE(SUM(CASE WHEN priority = 'urgent' AND status NOT IN ('closed','resolved') THEN 1 ELSE 0 END), 0) AS urgent_count
 		FROM tickets %s`, where)
 
 	var stats domain.StatsResponse
 	err := r.DB.QueryRowContext(ctx, query, args...).Scan(
+		&stats.TotalTickets,
 		&stats.OpenTickets,
 		&stats.InProgressTickets,
 		&stats.ResolvedTickets,
+		&stats.ClosedTickets,
 		&stats.UrgentTickets,
 	)
 	if err != nil {
 		return nil, err
 	}
 	return &stats, nil
+}
+
+func (r *TicketRepository) AdminStats(ctx context.Context, slaHours float64) (*domain.AdminDetailedStats, error) {
+	base, err := r.Stats(ctx, "")
+	if err != nil {
+		return nil, err
+	}
+
+	// SLA overdue: urgent open tickets older than configured SLA hours
+	overdue := int64(0)
+	err = r.DB.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM tickets WHERE priority = 'urgent' AND status = 'open' AND created_at < NOW() - make_interval(hours => $1)`,
+		slaHours).Scan(&overdue)
+	if err != nil {
+		return nil, err
+	}
+	base.OverdueTickets = overdue
+
+	rows, err := r.DB.QueryContext(ctx, `SELECT category, COUNT(*) FROM tickets GROUP BY category ORDER BY COUNT(*) DESC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var cats []domain.CategoryCount
+	for rows.Next() {
+		var c domain.CategoryCount
+		if err := rows.Scan(&c.Category, &c.Count); err == nil {
+			cats = append(cats, c)
+		}
+	}
+
+	rows2, err := r.DB.QueryContext(ctx, `SELECT priority, COUNT(*) FROM tickets WHERE status NOT IN ('closed') GROUP BY priority ORDER BY COUNT(*) DESC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows2.Close()
+	var pris []domain.PriorityCount
+	for rows2.Next() {
+		var p domain.PriorityCount
+		if err := rows2.Scan(&p.Priority, &p.Count); err == nil {
+			pris = append(pris, p)
+		}
+	}
+
+	rows3, err := r.DB.QueryContext(ctx, `
+		SELECT u.id, u.name, COUNT(t.id) FROM users u
+		LEFT JOIN tickets t ON t.assignee_id = u.id AND t.status NOT IN ('closed','resolved')
+		WHERE u.role = 'agent' GROUP BY u.id, u.name ORDER BY COUNT(t.id) DESC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows3.Close()
+	var agents []domain.AgentWorkload
+	for rows3.Next() {
+		var a domain.AgentWorkload
+		if err := rows3.Scan(&a.AgentID, &a.AgentName, &a.Count); err == nil {
+			agents = append(agents, a)
+		}
+	}
+
+	return &domain.AdminDetailedStats{
+		StatsResponse: *base,
+		Categories:    cats,
+		Priorities:    pris,
+		Agents:        agents,
+	}, nil
 }

@@ -6,3 +6,5 @@ backend/api
 frontend/node_modules
 frontend/dist
 db_data
+DESIGN.md
+PRD_*.md

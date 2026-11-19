@@ -146,6 +146,7 @@ func (m *MockTicketRepo) Stats(ctx context.Context, requesterID string) (*domain
 		if requesterID != "" && t.RequesterID != requesterID {
 			continue
 		}
+		stats.TotalTickets++
 		switch t.Status {
 		case domain.StatusOpen:
 			stats.OpenTickets++
@@ -153,12 +154,27 @@ func (m *MockTicketRepo) Stats(ctx context.Context, requesterID string) (*domain
 			stats.InProgressTickets++
 		case domain.StatusResolved:
 			stats.ResolvedTickets++
+		case domain.StatusClosed:
+			stats.ClosedTickets++
 		}
 		if t.Priority == domain.PriorityUrgent && t.Status != domain.StatusClosed {
 			stats.UrgentTickets++
 		}
 	}
 	return &stats, nil
+}
+
+func (m *MockTicketRepo) AdminStats(ctx context.Context, slaHours float64) (*domain.AdminDetailedStats, error) {
+	stats, err := m.Stats(ctx, "")
+	if err != nil {
+		return nil, err
+	}
+	return &domain.AdminDetailedStats{
+		StatsResponse: *stats,
+		Categories:    []domain.CategoryCount{},
+		Priorities:    []domain.PriorityCount{},
+		Agents:        []domain.AgentWorkload{},
+	}, nil
 }
 
 type MockCommentRepo struct {
@@ -191,4 +207,43 @@ func (m *MockCommentRepo) ListByTicket(ctx context.Context, ticketID string, inc
 		res = append(res, c)
 	}
 	return res, nil
+}
+
+type MockAttachmentRepo struct {
+	mu          sync.Mutex
+	attachments []*domain.Attachment
+}
+
+func NewMockAttachmentRepo() *MockAttachmentRepo {
+	return &MockAttachmentRepo{}
+}
+
+func (m *MockAttachmentRepo) Create(ctx context.Context, att *domain.Attachment) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.attachments = append(m.attachments, att)
+	return nil
+}
+
+func (m *MockAttachmentRepo) ListByTicket(ctx context.Context, ticketID string) ([]*domain.Attachment, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var res []*domain.Attachment
+	for _, a := range m.attachments {
+		if a.TicketID == ticketID {
+			res = append(res, a)
+		}
+	}
+	return res, nil
+}
+
+func (m *MockAttachmentRepo) FindByID(ctx context.Context, id string) (*domain.Attachment, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, a := range m.attachments {
+		if a.ID == id {
+			return a, nil
+		}
+	}
+	return nil, domain.ErrNotFound
 }

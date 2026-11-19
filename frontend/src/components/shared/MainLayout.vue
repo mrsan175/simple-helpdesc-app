@@ -104,6 +104,18 @@
             </svg>
             {{ t('nav_users') }}
           </router-link>
+
+          <router-link
+            v-if="auth.isAdmin"
+            to="/admin/stats"
+            class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors"
+            :class="isStatsActive ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-semibold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'"
+          >
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            {{ t('nav_stats') }}
+          </router-link>
         </nav>
 
         <div class="p-4 border-t">
@@ -143,6 +155,15 @@
             >
               {{ t('nav_users') }}
             </router-link>
+            <router-link
+              v-if="auth.isAdmin"
+              to="/admin/stats"
+              @click="mobileMenuOpen = false"
+              class="block px-3 py-2 text-sm font-medium rounded-md transition-colors"
+              :class="isStatsActive ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-semibold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'"
+            >
+              {{ t('nav_stats') }}
+            </router-link>
           </nav>
         </div>
 
@@ -162,14 +183,18 @@
         </div>
       </main>
     </div>
+
+    <Toast :message="toast.message" :type="toast.type" :visible="toast.visible" />
   </div>
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { useI18n } from '../../i18n'
+import { useRealtime } from '../../services/realtime.service'
+import Toast from './Toast.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -177,10 +202,24 @@ const route = useRoute()
 const mobileMenuOpen = ref(false)
 const { t, settings } = useI18n()
 
+const toast = ref({ message: '', visible: false, type: 'success' })
+const realtime = useRealtime()
+let showToastTimer = null
+
+const showToast = (msg, type = 'success') => {
+  toast.value = { message: msg, type, visible: true }
+  if (showToastTimer) clearTimeout(showToastTimer)
+  showToastTimer = setTimeout(() => {
+    toast.value.visible = false
+  }, 4000)
+}
+
 const isTicketsActive = computed(() => route.path.startsWith('/tickets'))
 const isUsersActive = computed(() => route.path.startsWith('/users'))
+const isStatsActive = computed(() => route.path.startsWith('/admin/stats'))
 
 const handleLogout = () => {
+  realtime.disconnect()
   auth.logout()
   router.push('/login')
 }
@@ -199,10 +238,30 @@ const toggleFullscreen = async () => {
   }
 }
 
+let unsubs = []
+
 onMounted(() => {
   document.addEventListener('fullscreenchange', () => {
     const isFull = !!document.fullscreenElement
     if (settings.fullscreen !== isFull) settings.fullscreen = isFull
   })
+
+  // SSE real-time notifications
+  unsubs.push(realtime.onEvent('ticket_created', (data) => {
+    showToast(`${t('rt_ticket_created')}: ${data?.title || ''}`)
+  }))
+  unsubs.push(realtime.onEvent('ticket_updated', () => {
+    showToast(t('rt_ticket_updated'))
+  }))
+  unsubs.push(realtime.onEvent('comment_added', () => {
+    showToast(t('rt_comment_added'))
+  }))
+  unsubs.push(realtime.onEvent('attachment_added', () => {
+    showToast(t('rt_attachment_added'))
+  }))
+})
+
+onUnmounted(() => {
+  unsubs.forEach((unsub) => unsub())
 })
 </script>

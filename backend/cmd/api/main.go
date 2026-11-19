@@ -5,13 +5,11 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 
 	"backend/internal/config"
 	"backend/internal/database"
 	"backend/internal/handler"
-	"backend/internal/middleware"
 	"backend/internal/repository"
 	"backend/internal/service"
 )
@@ -44,56 +42,22 @@ func main() {
 	userRepo := repository.NewUserRepository(db)
 	ticketRepo := repository.NewTicketRepository(db)
 	commentRepo := repository.NewCommentRepository(db)
+	attachmentRepo := repository.NewAttachmentRepository(db)
 
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret, cfg.JWTExpiry)
-	ticketService := service.NewTicketService(ticketRepo, commentRepo, userRepo, cfg.SLAHours)
+	ticketService := service.NewTicketService(ticketRepo, commentRepo, userRepo, attachmentRepo, cfg.SLAHours)
 	userService := service.NewUserService(userRepo)
 
 	authHandler := handler.NewAuthHandler(authService)
-	ticketHandler := handler.NewTicketHandler(ticketService)
+	ticketHandler := handler.NewTicketHandler(ticketService, cfg.UploadDir)
 	userHandler := handler.NewUserHandler(userService)
 
-	gin.SetMode(gin.ReleaseMode)
-	r := gin.Default()
-
-	// CORS middleware
-	r.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, PATCH, DELETE")
-
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-		c.Next()
+	r := handler.SetupRouter(handler.RouterConfig{
+		JWTSecret:     cfg.JWTSecret,
+		AuthHandler:   authHandler,
+		TicketHandler: ticketHandler,
+		UserHandler:   userHandler,
 	})
-
-	api := r.Group("/api")
-	{
-		api.POST("/auth/register", authHandler.Register)
-		api.POST("/auth/login", authHandler.Login)
-		api.GET("/me", middleware.Auth(cfg.JWTSecret), authHandler.Me)
-
-		api.GET("/stats", middleware.Auth(cfg.JWTSecret), ticketHandler.Stats)
-		api.GET("/tickets/stats", middleware.Auth(cfg.JWTSecret), ticketHandler.Stats)
-
-		tickets := api.Group("/tickets", middleware.Auth(cfg.JWTSecret))
-		{
-			tickets.GET("", ticketHandler.List)
-			tickets.POST("", ticketHandler.Create)
-			tickets.GET("/:id", ticketHandler.Get)
-			tickets.PATCH("/:id", ticketHandler.Update)
-			tickets.POST("/:id/comments", ticketHandler.AddComment)
-		}
-
-		users := api.Group("/users", middleware.Auth(cfg.JWTSecret))
-		{
-			users.GET("", userHandler.List)
-			users.PATCH("/:id/role", userHandler.UpdateRole)
-		}
-	}
 
 	port := os.Getenv("PORT")
 	if port == "" {

@@ -17,6 +17,13 @@ type TicketRepository interface {
 	List(ctx context.Context, filter TicketFilter) ([]*Ticket, int64, error)
 	Update(ctx context.Context, ticket *Ticket) error
 	Stats(ctx context.Context, requesterID string) (*StatsResponse, error)
+	AdminStats(ctx context.Context, slaHours float64) (*AdminDetailedStats, error)
+}
+
+type AttachmentRepository interface {
+	Create(ctx context.Context, att *Attachment) error
+	ListByTicket(ctx context.Context, ticketID string) ([]*Attachment, error)
+	FindByID(ctx context.Context, id string) (*Attachment, error)
 }
 
 type CommentRepository interface {
@@ -36,6 +43,9 @@ type TicketService interface {
 	Update(ctx context.Context, actor *User, id string, req UpdateTicketReq) (*Ticket, error)
 	AddComment(ctx context.Context, actor *User, ticketID string, req CreateCommentReq) (*Comment, error)
 	Stats(ctx context.Context, actor *User) (*StatsResponse, error)
+	AdminStats(ctx context.Context, actor *User) (*AdminDetailedStats, error)
+	AddAttachment(ctx context.Context, actor *User, ticketID string, att *Attachment) (*Attachment, error)
+	GetAttachment(ctx context.Context, actor *User, attachmentID string) (*Attachment, error)
 }
 
 type UserService interface {

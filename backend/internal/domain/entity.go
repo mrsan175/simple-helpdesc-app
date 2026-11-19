@@ -55,7 +55,21 @@ type Ticket struct {
 	Requester *User      `json:"requester,omitempty"`
 	Assignee  *User      `json:"assignee,omitempty"`
 	Comments  []*Comment `json:"comments"`
+	Attachments []*Attachment `json:"attachments"`
 	IsOverdue bool       `json:"is_overdue"`
+}
+
+type Attachment struct {
+	ID          string    `json:"id"`
+	TicketID    string    `json:"ticket_id"`
+	UploaderID  string    `json:"uploader_id"`
+	Filename    string    `json:"filename"`
+	FilePath    string    `json:"file_path,omitempty"`
+	FileSize    int64     `json:"file_size"`
+	ContentType string    `json:"content_type"`
+	CreatedAt   time.Time `json:"created_at"`
+
+	Uploader *User `json:"uploader,omitempty"`
 }
 
 type Comment struct {

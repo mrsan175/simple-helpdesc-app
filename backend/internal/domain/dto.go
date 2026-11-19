@@ -71,8 +71,34 @@ type TicketListResponse struct {
 }
 
 type StatsResponse struct {
+	TotalTickets      int64 `json:"total_tickets"`
 	OpenTickets       int64 `json:"open_tickets"`
 	InProgressTickets int64 `json:"in_progress_tickets"`
 	ResolvedTickets   int64 `json:"resolved_tickets"`
+	ClosedTickets     int64 `json:"closed_tickets"`
 	UrgentTickets     int64 `json:"urgent_tickets"`
+	OverdueTickets    int64 `json:"overdue_tickets"`
+}
+
+type CategoryCount struct {
+	Category string `json:"category"`
+	Count    int64  `json:"count"`
+}
+
+type PriorityCount struct {
+	Priority string `json:"priority"`
+	Count    int64  `json:"count"`
+}
+
+type AgentWorkload struct {
+	AgentID   string `json:"agent_id"`
+	AgentName string `json:"agent_name"`
+	Count     int64  `json:"count"`
+}
+
+type AdminDetailedStats struct {
+	StatsResponse
+	Categories []CategoryCount `json:"categories"`
+	Priorities []PriorityCount `json:"priorities"`
+	Agents     []AgentWorkload `json:"agents"`
 }

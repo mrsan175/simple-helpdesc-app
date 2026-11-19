@@ -40,6 +40,70 @@
           <p class="text-xs sm:text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed break-words">{{ ticket.description }}</p>
         </div>
 
+        <!-- Lampiran / Attachments Section -->
+        <div class="card p-4 sm:p-6">
+          <div class="flex items-center justify-between mb-3 sm:mb-4">
+            <h2 class="text-sm sm:text-base font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+              </svg>
+              {{ t('attachments') }} ({{ (ticket.attachments || []).length }})
+            </h2>
+            <label
+              class="btn btn-outline btn-sm cursor-pointer text-xs flex items-center gap-1.5"
+              :class="{ 'opacity-50 pointer-events-none': uploadingFile }"
+            >
+              <input type="file" class="hidden" @change="handleFileUpload" :disabled="uploadingFile" />
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+              <span>{{ uploadingFile ? t('uploading') : t('add_attachment') }}</span>
+            </label>
+          </div>
+
+          <div v-if="uploadError" class="mb-3 text-xs rounded-md bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 p-2.5">
+            {{ uploadError }}
+          </div>
+
+          <div v-if="!(ticket.attachments || []).length" class="text-center py-5 text-xs text-slate-400 dark:text-slate-500">
+            {{ t('no_attachments') }}
+          </div>
+
+          <div v-else class="divide-y divide-slate-100 dark:divide-slate-800">
+            <div
+              v-for="att in ticket.attachments || []"
+              :key="att.id"
+              class="py-2.5 flex items-center justify-between gap-3 text-xs"
+            >
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-7 h-7 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0">
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div class="min-w-0">
+                  <p class="font-medium text-slate-900 dark:text-slate-100 truncate">{{ att.filename }}</p>
+                  <p class="text-[11px] text-slate-400 dark:text-slate-500">
+                    {{ formatFileSize(att.file_size) }} · {{ att.uploader?.name || 'User' }}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                class="btn btn-outline btn-sm text-xs shrink-0 py-1 px-2.5"
+                @click="downloadAttachment(att.id)"
+              >
+                {{ t('download') }}
+              </button>
+            </div>
+          </div>
+
+          <p class="mt-3 text-[11px] text-slate-400 dark:text-slate-500">
+            {{ t('attachment_help_text') }}
+          </p>
+        </div>
+
         <div class="card p-4 sm:p-6">
           <h2 class="text-sm sm:text-base font-semibold text-slate-900 dark:text-slate-100 mb-3 sm:mb-4">
             {{ t('discussion') }} ({{ (ticket.comments || []).length }})
@@ -248,11 +312,12 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { ticketService } from '../services/ticket.service'
 import { userService } from '../services/user.service'
+import { useRealtime } from '../services/realtime.service'
 import StatusBadge from '../components/shared/StatusBadge.vue'
 import PriorityBadge from '../components/shared/PriorityBadge.vue'
 import LoadingSkeleton from '../components/shared/LoadingSkeleton.vue'
@@ -266,12 +331,15 @@ const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 const { t } = useI18n()
+const realtime = useRealtime()
 
 const ticket = ref(null)
 const loading = ref(false)
 const error = ref('')
 const assignees = ref([])
 const submitting = ref(false)
+const uploadingFile = ref(false)
+const uploadError = ref('')
 const toast = reactive({ message: '', type: 'success', visible: false })
 const pendingAction = ref(null)
 
@@ -420,8 +488,68 @@ const formatTime = (value) => {
   return new Date(value).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
 }
 
+const formatFileSize = (bytes) => {
+  if (!bytes || bytes <= 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+}
+
+const handleFileUpload = async (event) => {
+  const file = event.target.files?.[0]
+  if (!file) return
+
+  // Validate size client-side (5MB)
+  if (file.size > 5 * 1024 * 1024) {
+    uploadError.value = t('file_too_large')
+    event.target.value = ''
+    return
+  }
+
+  uploadError.value = ''
+  uploadingFile.value = true
+  try {
+    await ticketService.uploadAttachment(ticket.value.id, file)
+    showToast(t('attachment_uploaded'))
+    await fetchTicket()
+  } catch (err) {
+    uploadError.value = err.message || t('attachment_upload_failed')
+  } finally {
+    uploadingFile.value = false
+    event.target.value = ''
+  }
+}
+
+const downloadAttachment = (attachmentId) => {
+  ticketService.downloadAttachment(attachmentId)
+}
+
+let detailUnsubs = []
+
 onMounted(async () => {
   await fetchTicket()
   await fetchAssignees()
+
+  // Real-time auto-reload for this ticket
+  detailUnsubs.push(
+    realtime.onEvent('comment_added', (p) => {
+      if (p?.ticket_id === route.params.id) fetchTicket()
+    })
+  )
+  detailUnsubs.push(
+    realtime.onEvent('attachment_added', (p) => {
+      if (p?.ticket_id === route.params.id) fetchTicket()
+    })
+  )
+  detailUnsubs.push(
+    realtime.onEvent('ticket_updated', (p) => {
+      if (p?.id === route.params.id) fetchTicket()
+    })
+  )
+})
+
+onUnmounted(() => {
+  detailUnsubs.forEach((fn) => fn())
 })
 </script>

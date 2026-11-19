@@ -138,7 +138,44 @@ export const translations = {
     role_update_failed: 'Gagal memperbarui role',
     retry: 'Coba Lagi',
     loading: 'Memuat...',
-    error_title: 'Terjadi kesalahan'
+    error_title: 'Terjadi kesalahan',
+
+    // Nav & Admin Stats
+    nav_stats: 'Statistik',
+    stats_title: 'Statistik & Kinerja Helpdesk',
+    stats_subtitle: 'Ringkasan operasional tiket, distribusi kategori, dan beban kerja tim.',
+    stat_total: 'Total Tiket',
+    stat_closed: 'Closed',
+    stat_sla_overdue: 'SLA Overdue',
+    category_breakdown: 'Distribusi Tiket per Kategori',
+    priority_breakdown: 'Distribusi Tiket Aktif per Prioritas',
+    agent_workload: 'Beban Kerja Tim Agent',
+    agent_workload_sub: 'Jumlah tiket aktif yang sedang ditangani masing-masing agent.',
+    th_assigned_tickets: 'Tiket Aktif',
+    workload_status: 'Kapasitas',
+    load_high: 'Tinggi (≥5)',
+    load_normal: 'Normal',
+    load_light: 'Ringan',
+    no_agents: 'Belum ada data kinerja agent',
+    empty_stats: 'Belum ada data',
+    refresh: 'Perbarui Data',
+
+    // Attachments
+    attachments: 'Lampiran Berkas',
+    add_attachment: 'Unggah Berkas',
+    uploading: 'Mengunggah...',
+    no_attachments: 'Belum ada berkas lampiran pada tiket ini.',
+    download: 'Unduh',
+    attachment_help_text: 'Maks. 5MB per berkas. Tipe didukung: JPG, PNG, WEBP, GIF, PDF, TXT, CSV, DOC, DOCX, XLS, XLSX, ZIP.',
+    file_too_large: 'Ukuran berkas melebihi batas 5MB',
+    attachment_uploaded: 'Berkas berhasil diunggah',
+    attachment_upload_failed: 'Gagal mengunggah berkas',
+
+    // Realtime Notifications
+    rt_ticket_created: 'Tiket baru dibuat',
+    rt_ticket_updated: 'Status tiket telah diperbarui',
+    rt_comment_added: 'Pesan balasan baru masuk',
+    rt_attachment_added: 'Lampiran baru ditambahkan'
   },
   en: {
     // Nav & Layout
@@ -276,7 +313,44 @@ export const translations = {
     role_update_failed: 'Failed to update role',
     retry: 'Try Again',
     loading: 'Loading...',
-    error_title: 'An error occurred'
+    error_title: 'An error occurred',
+
+    // Nav & Admin Stats
+    nav_stats: 'Statistics',
+    stats_title: 'Helpdesk Statistics & Performance',
+    stats_subtitle: 'Ticket operations summary, category distribution, and team workload.',
+    stat_total: 'Total Tickets',
+    stat_closed: 'Closed',
+    stat_sla_overdue: 'SLA Overdue',
+    category_breakdown: 'Tickets by Category',
+    priority_breakdown: 'Active Tickets by Priority',
+    agent_workload: 'Agent Workload',
+    agent_workload_sub: 'Active tickets currently assigned to each agent.',
+    th_assigned_tickets: 'Active Tickets',
+    workload_status: 'Capacity',
+    load_high: 'High (≥5)',
+    load_normal: 'Normal',
+    load_light: 'Light',
+    no_agents: 'No agent performance data available',
+    empty_stats: 'No data available',
+    refresh: 'Refresh Data',
+
+    // Attachments
+    attachments: 'Attachments',
+    add_attachment: 'Upload File',
+    uploading: 'Uploading...',
+    no_attachments: 'No attachments on this ticket.',
+    download: 'Download',
+    attachment_help_text: 'Max 5MB per file. Supported: JPG, PNG, WEBP, GIF, PDF, TXT, CSV, DOC, DOCX, XLS, XLSX, ZIP.',
+    file_too_large: 'File exceeds the 5MB size limit',
+    attachment_uploaded: 'File uploaded successfully',
+    attachment_upload_failed: 'Failed to upload file',
+
+    // Realtime Notifications
+    rt_ticket_created: 'New ticket created',
+    rt_ticket_updated: 'Ticket status has been updated',
+    rt_comment_added: 'New reply received',
+    rt_attachment_added: 'New attachment added'
   }
 }
 

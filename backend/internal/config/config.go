@@ -15,6 +15,7 @@ type Config struct {
 	SLAHours       int
 	AllowedOrigins string
 	SeedOnStart    bool
+	UploadDir      string
 }
 
 func Load() (*Config, error) {
@@ -46,6 +47,7 @@ func Load() (*Config, error) {
 		SLAHours:       slaHours,
 		AllowedOrigins: getEnv("ALLOWED_ORIGINS", "http://localhost:5173"),
 		SeedOnStart:    getEnv("SEED_ON_START", "true") == "true",
+		UploadDir:      getEnv("UPLOAD_DIR", "./uploads"),
 	}, nil
 }
 

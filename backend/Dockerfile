@@ -11,6 +11,7 @@ FROM alpine:3.20
 RUN apk add --no-cache ca-certificates && adduser -D appuser
 WORKDIR /app
 COPY --from=build /server /app/server
+RUN mkdir -p /app/uploads && chown -R appuser:appuser /app/uploads
 USER appuser
 EXPOSE 8080
 ENTRYPOINT ["/app/server"]

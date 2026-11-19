@@ -6,17 +6,20 @@ Clean/layered architecture with strict dependency inversion:
 
 - **Domain** (`internal/domain`): pure structs, errors, interfaces. No external dependencies.
 - **Repository** (`internal/repository`): raw SQL operations. No business logic.
-- **Service** (`internal/service`): business logic, state machine validation, RBAC.
-- **Handler** (`internal/handler`): HTTP parsing, response mapping, error → HTTP status.
-- **Middleware** (`internal/middleware`): JWT auth, role guards.
+- **Service** (`internal/service`): business logic, state machine validation, RBAC, SLA check.
+- **Handler** (`internal/handler`): HTTP parsing, multipart upload validation, SSE event streaming, error → HTTP status.
+- **Middleware** (`internal/middleware`): JWT auth (header and query token for EventSource), role guards.
+- **Realtime** (`internal/realtime`): in-memory pub/sub broker for SSE fan-out.
 
 ### Key Decisions
 
-- **JWT** via `golang-jwt/jwt/v5` with HMAC-SHA256.
+- **JWT** via `golang-jwt/jwt/v5` with HMAC-SHA256 (supports header & query param for EventSource).
 - **Password hashing** via `bcrypt`.
 - **UUID** for all primary keys (prevents IDOR).
 - **State machine** isolated in `service.ValidateTransition` — easy to unit test without DB.
 - **Idempotent migrations** via `schema_migrations` table.
+- **Real-time SSE** via standard HTTP streaming (`c.Stream`), zero third-party dependencies.
+- **File Uploads**: stored in configured upload directory with UUID prefix, MIME detection, 5MB limit.
 
 ## Frontend (Vue 3)
 

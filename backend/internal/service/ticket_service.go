@@ -8,26 +8,30 @@ import (
 	"github.com/google/uuid"
 
 	"backend/internal/domain"
+	"backend/internal/realtime"
 )
 
 type TicketService struct {
-	ticketRepo  domain.TicketRepository
-	commentRepo domain.CommentRepository
-	userRepo    domain.UserRepository
-	slaDuration time.Duration
+	ticketRepo     domain.TicketRepository
+	commentRepo    domain.CommentRepository
+	userRepo       domain.UserRepository
+	attachmentRepo domain.AttachmentRepository
+	slaDuration    time.Duration
 }
 
 func NewTicketService(
 	ticketRepo domain.TicketRepository,
 	commentRepo domain.CommentRepository,
 	userRepo domain.UserRepository,
+	attachmentRepo domain.AttachmentRepository,
 	slaHours int,
 ) *TicketService {
 	return &TicketService{
-		ticketRepo:  ticketRepo,
-		commentRepo: commentRepo,
-		userRepo:    userRepo,
-		slaDuration: time.Duration(slaHours) * time.Hour,
+		ticketRepo:     ticketRepo,
+		commentRepo:    commentRepo,
+		userRepo:       userRepo,
+		attachmentRepo: attachmentRepo,
+		slaDuration:    time.Duration(slaHours) * time.Hour,
 	}
 }
 
@@ -87,6 +91,12 @@ func (s *TicketService) Get(ctx context.Context, actor *domain.User, id string) 
 	}
 	ticket.Comments = comments
 
+	attachments, err := s.attachmentRepo.ListByTicket(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	ticket.Attachments = attachments
+
 	if ticket.Status == domain.StatusOpen && ticket.Priority == domain.PriorityUrgent {
 		if time.Since(ticket.CreatedAt) > s.slaDuration {
 			ticket.IsOverdue = true
@@ -118,6 +128,7 @@ func (s *TicketService) Create(ctx context.Context, actor *domain.User, req doma
 	}
 
 	ticket.Requester = actor
+	realtime.DefaultBroker.Broadcast("ticket_created", map[string]string{"id": ticket.ID, "title": ticket.Title})
 	return ticket, nil
 }
 
@@ -181,6 +192,7 @@ func (s *TicketService) Update(ctx context.Context, actor *domain.User, id strin
 		return nil, err
 	}
 
+	realtime.DefaultBroker.Broadcast("ticket_updated", map[string]string{"id": ticket.ID})
 	return s.Get(ctx, actor, ticket.ID)
 }
 
@@ -213,7 +225,50 @@ func (s *TicketService) AddComment(ctx context.Context, actor *domain.User, tick
 		return nil, err
 	}
 
+	realtime.DefaultBroker.Broadcast("comment_added", map[string]string{"ticket_id": ticketID})
 	return comment, nil
+}
+
+func (s *TicketService) AddAttachment(ctx context.Context, actor *domain.User, ticketID string, att *domain.Attachment) (*domain.Attachment, error) {
+	ticket, err := s.ticketRepo.FindByID(ctx, ticketID)
+	if err != nil {
+		return nil, err
+	}
+
+	if actor.Role == domain.RoleRequester && ticket.RequesterID != actor.ID {
+		return nil, domain.ErrForbidden
+	}
+
+	att.ID = uuid.NewString()
+	att.TicketID = ticketID
+	att.UploaderID = actor.ID
+	att.CreatedAt = time.Now().UTC()
+	att.Uploader = actor
+
+	if err := s.attachmentRepo.Create(ctx, att); err != nil {
+		return nil, err
+	}
+
+	realtime.DefaultBroker.Broadcast("attachment_added", map[string]string{"ticket_id": ticketID})
+	return att, nil
+}
+
+func (s *TicketService) GetAttachment(ctx context.Context, actor *domain.User, attachmentID string) (*domain.Attachment, error) {
+	att, err := s.attachmentRepo.FindByID(ctx, attachmentID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Verify actor can see the ticket
+	ticket, err := s.ticketRepo.FindByID(ctx, att.TicketID)
+	if err != nil {
+		return nil, err
+	}
+	if actor.Role == domain.RoleRequester && ticket.RequesterID != actor.ID {
+		return nil, domain.ErrForbidden
+	}
+
+	return att, nil
 }
 
 func (s *TicketService) Stats(ctx context.Context, actor *domain.User) (*domain.StatsResponse, error) {
@@ -222,4 +277,11 @@ func (s *TicketService) Stats(ctx context.Context, actor *domain.User) (*domain.
 		requesterID = actor.ID
 	}
 	return s.ticketRepo.Stats(ctx, requesterID)
+}
+
+func (s *TicketService) AdminStats(ctx context.Context, actor *domain.User) (*domain.AdminDetailedStats, error) {
+	if actor.Role != domain.RoleAdmin {
+		return nil, domain.ErrForbidden
+	}
+	return s.ticketRepo.AdminStats(ctx, s.slaDuration.Hours())
 }

@@ -1,21 +1,31 @@
 package handler
 
 import (
+	"fmt"
+	"io"
 	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 
 	"backend/internal/domain"
 	"backend/internal/middleware"
+	"backend/internal/realtime"
 )
 
 type TicketHandler struct {
 	ticketService domain.TicketService
+	uploadDir     string
 }
 
-func NewTicketHandler(ticketService domain.TicketService) *TicketHandler {
-	return &TicketHandler{ticketService: ticketService}
+func NewTicketHandler(ticketService domain.TicketService, uploadDir string) *TicketHandler {
+	return &TicketHandler{ticketService: ticketService, uploadDir: uploadDir}
 }
 
 func (h *TicketHandler) List(c *gin.Context) {
@@ -143,4 +153,162 @@ func (h *TicketHandler) Stats(c *gin.Context) {
 		return
 	}
 	respondData(c, http.StatusOK, stats)
+}
+
+func (h *TicketHandler) AdminStats(c *gin.Context) {
+	user := middleware.CurrentUser(c)
+	if user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	if user.Role != domain.RoleAdmin {
+		respondError(c, domain.ErrForbidden)
+		return
+	}
+
+	stats, err := h.ticketService.AdminStats(c.Request.Context(), user)
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+	respondData(c, http.StatusOK, stats)
+}
+
+func (h *TicketHandler) UploadAttachment(c *gin.Context) {
+	user := middleware.CurrentUser(c)
+	if user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	// Max 5 MB
+	const maxSize = 5 << 20
+	fileHeader, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "File tidak ditemukan"})
+		return
+	}
+
+	if fileHeader.Size > maxSize {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ukuran file melebihi batas maksimal 5MB"})
+		return
+	}
+
+	allowedExt := map[string]string{
+		".jpg":  "image/jpeg",
+		".jpeg": "image/jpeg",
+		".png":  "image/png",
+		".gif":  "image/gif",
+		".webp": "image/webp",
+		".pdf":  "application/pdf",
+		".txt":  "text/plain",
+		".csv":  "text/csv",
+		".doc":  "application/msword",
+		".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+		".xls":  "application/vnd.ms-excel",
+		".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+		".zip":  "application/zip",
+	}
+
+	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
+	expectedMime, ok := allowedExt[ext]
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Tipe file tidak didukung. Format didukung: jpg, png, webp, gif, pdf, txt, csv, doc, docx, xls, xlsx, zip"})
+		return
+	}
+
+	uploadDir := h.uploadDir
+	if uploadDir == "" {
+		uploadDir = "./uploads"
+	}
+	if err := os.MkdirAll(uploadDir, 0o755); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyiapkan direktori berkas"})
+		return
+	}
+
+	fileID := uuid.NewString()
+	sanitizedName := filepath.Base(fileHeader.Filename)
+	storedFilename := fmt.Sprintf("%s_%s", fileID, sanitizedName)
+	storedPath := filepath.Join(uploadDir, storedFilename)
+
+	if err := c.SaveUploadedFile(fileHeader, storedPath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyimpan berkas"})
+		return
+	}
+
+	att := &domain.Attachment{
+		Filename:    sanitizedName,
+		FilePath:    storedPath,
+		FileSize:    fileHeader.Size,
+		ContentType: expectedMime,
+	}
+
+	created, err := h.ticketService.AddAttachment(c.Request.Context(), user, c.Param("id"), att)
+	if err != nil {
+		_ = os.Remove(storedPath)
+		respondError(c, err)
+		return
+	}
+
+	respondData(c, http.StatusCreated, created)
+}
+
+func (h *TicketHandler) DownloadAttachment(c *gin.Context) {
+	user := middleware.CurrentUser(c)
+	if user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	att, err := h.ticketService.GetAttachment(c.Request.Context(), user, c.Param("id"))
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+
+	c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, url.PathEscape(att.Filename)))
+	c.Header("Content-Type", att.ContentType)
+	c.File(att.FilePath)
+}
+
+func (h *TicketHandler) StreamEvents(c *gin.Context) {
+	user := middleware.CurrentUser(c)
+	if user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	c.Writer.Header().Set("Content-Type", "text/event-stream")
+	c.Writer.Header().Set("Cache-Control", "no-cache")
+	c.Writer.Header().Set("Connection", "keep-alive")
+	c.Writer.Header().Set("X-Accel-Buffering", "no")
+	c.Writer.WriteString(": connected\n\n")
+	c.Writer.Flush()
+
+	ch, unsubscribe := realtime.DefaultBroker.Subscribe()
+	defer unsubscribe()
+
+	ticker := time.NewTicker(25 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		case msg, ok := <-ch:
+			if !ok {
+				return
+			}
+			if _, err := c.Writer.Write(msg); err != nil {
+				return
+			}
+			c.Writer.Flush()
+		case <-ticker.C:
+			if _, err := io.WriteString(c.Writer, ": ping\n\n"); err != nil {
+				return
+			}
+			c.Writer.Flush()
+		}
+	}
 }

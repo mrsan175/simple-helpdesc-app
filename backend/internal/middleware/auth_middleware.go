@@ -15,12 +15,17 @@ const ContextUserKey = "currentUser"
 func Auth(jwtSecret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		header := c.GetHeader("Authorization")
-		if header == "" || !strings.HasPrefix(header, "Bearer ") {
+		tokenString := ""
+		if header != "" && strings.HasPrefix(header, "Bearer ") {
+			tokenString = strings.TrimPrefix(header, "Bearer ")
+		} else if q := c.Query("token"); q != "" {
+			// EventSource cannot send custom headers; allow ?token= fallback.
+			tokenString = q
+		}
+		if tokenString == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Missing or invalid authorization header"})
 			return
 		}
-
-		tokenString := strings.TrimPrefix(header, "Bearer ")
 		token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, jwt.ErrSignatureInvalid
