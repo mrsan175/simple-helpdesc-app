@@ -28,10 +28,10 @@ func Seed(db *sql.DB) error {
 		email string
 		role  domain.UserRole
 	}{
-		{"Admin Simple Journey", "admin@simplejourney.id", domain.RoleAdmin},
-		{"Agent Simple Journey", "agent@simplejourney.id", domain.RoleAgent},
-		{"Requester A (Budi)", "requester1@simplejourney.id", domain.RoleRequester},
-		{"Requester B (Siti)", "requester2@simplejourney.id", domain.RoleRequester},
+		{"Admin Helpdesk", "admin@helpdesk.local", domain.RoleAdmin},
+		{"Agent Helpdesk", "agent@helpdesk.local", domain.RoleAgent},
+		{"Requester A (Budi)", "requester1@helpdesk.local", domain.RoleRequester},
+		{"Requester B (Siti)", "requester2@helpdesk.local", domain.RoleRequester},
 	}
 
 	var ids = make(map[string]string)
@@ -63,20 +63,20 @@ func Seed(db *sql.DB) error {
 		assignee       interface{}
 		ageHours       int
 	}{
-		{"Laptop Budi tidak bisa terhubung ke Wi-Fi kantor", "Sejak pagi laptop saya tidak menemukan SSID kantor. Sudah restart tapi tetap tidak muncul.", "Network", domain.PriorityHigh, domain.StatusOpen, "requester1@simplejourney.id", nil, 5},
-		{"Akses VPN Budi habis masa berlaku", "VPN token saya kadaluarsa dan tidak bisa login dari rumah. Mohon bantuan reset.", "IT Support", domain.PriorityUrgent, domain.StatusOpen, "requester1@simplejourney.id", nil, 30},
-		{"Printer lantai 3 macet (dilaporkan Budi)", "Printer di lantai 3 menampilkan error paper jam padahal tidak ada kertas tersangkut.", "Hardware", domain.PriorityMedium, domain.StatusInProgress, "requester1@simplejourney.id", ids["agent@simplejourney.id"], 26},
-		{"Email Budi tidak bisa mengirim lampiran besar", "Gagal mengirim email dengan lampiran di atas 10 MB, pesan error 'message too large'.", "IT Support", domain.PriorityHigh, domain.StatusOpen, "requester1@simplejourney.id", nil, 8},
-		{"Keyboard laptop Budi beberapa tombol tidak berfungsi", "Tombol spasi dan enter sering tidak merespons, sudah dibersihkan tapi tetap bermasalah.", "Hardware", domain.PriorityLow, domain.StatusResolved, "requester1@simplejourney.id", ids["agent@simplejourney.id"], 50},
-		{"Akses Google Drive Budi terblokir", "Tidak bisa membuka drive.google.com, muncul halaman blocked by administrator.", "Network", domain.PriorityMedium, domain.StatusClosed, "requester1@simplejourney.id", ids["agent@simplejourney.id"], 72},
+		{"Laptop Budi tidak bisa terhubung ke Wi-Fi kantor", "Sejak pagi laptop saya tidak menemukan SSID kantor. Sudah restart tapi tetap tidak muncul.", "Network", domain.PriorityHigh, domain.StatusOpen, "requester1@helpdesk.local", nil, 5},
+		{"Akses VPN Budi habis masa berlaku", "VPN token saya kadaluarsa dan tidak bisa login dari rumah. Mohon bantuan reset.", "IT Support", domain.PriorityUrgent, domain.StatusOpen, "requester1@helpdesk.local", nil, 30},
+		{"Printer lantai 3 macet (dilaporkan Budi)", "Printer di lantai 3 menampilkan error paper jam padahal tidak ada kertas tersangkut.", "Hardware", domain.PriorityMedium, domain.StatusInProgress, "requester1@helpdesk.local", ids["agent@helpdesk.local"], 26},
+		{"Email Budi tidak bisa mengirim lampiran besar", "Gagal mengirim email dengan lampiran di atas 10 MB, pesan error 'message too large'.", "IT Support", domain.PriorityHigh, domain.StatusOpen, "requester1@helpdesk.local", nil, 8},
+		{"Keyboard laptop Budi beberapa tombol tidak berfungsi", "Tombol spasi dan enter sering tidak merespons, sudah dibersihkan tapi tetap bermasalah.", "Hardware", domain.PriorityLow, domain.StatusResolved, "requester1@helpdesk.local", ids["agent@helpdesk.local"], 50},
+		{"Akses Google Drive Budi terblokir", "Tidak bisa membuka drive.google.com, muncul halaman blocked by administrator.", "Network", domain.PriorityMedium, domain.StatusClosed, "requester1@helpdesk.local", ids["agent@helpdesk.local"], 72},
 
-		{"Permintaan lisensi Figma dari Siti", "Tim desain butuh 1 lisensi Figma Professional tambahan untuk bulan ini.", "Software", domain.PriorityLow, domain.StatusResolved, "requester2@simplejourney.id", ids["agent@simplejourney.id"], 48},
-		{"Kursi kerja Siti rusak", "Kursi di meja saya hidroliknya tidak bisa naik turun. Mohon diganti.", "HR/Facility", domain.PriorityMedium, domain.StatusClosed, "requester2@simplejourney.id", ids["agent@simplejourney.id"], 96},
-		{"Monitor Siti berkedip saat digunakan", "Monitor eksternal berkedip setiap beberapa menit setelah docking station terpasang.", "Hardware", domain.PriorityMedium, domain.StatusOpen, "requester2@simplejourney.id", nil, 12},
-		{"Siti lupa password akun HRIS", "Password HRIS saya tidak diterima setelah reset via email, tolong dibukakan kembali.", "IT Support", domain.PriorityHigh, domain.StatusInProgress, "requester2@simplejourney.id", ids["agent@simplejourney.id"], 20},
-		{"VPN Siti sering terputus saat video call", "Koneksi VPN drop setiap 5-10 menit saat meeting, sinyal Wi-Fi stabil saja.", "Network", domain.PriorityMedium, domain.StatusOpen, "requester2@simplejourney.id", nil, 3},
-		{"Permintaan instalasi antivirus untuk laptop Siti", "Laptop baru belum terpasang antivirus standar perusahaan, mohon dibantu instal.", "Software", domain.PriorityLow, domain.StatusResolved, "requester2@simplejourney.id", ids["agent@simplejourney.id"], 80},
-		{"Meja meeting lantai 2 rusak", "Salah satu kaki meja meeting lantai 2 patah, tidak aman digunakan rapat.", "HR/Facility", domain.PriorityMedium, domain.StatusOpen, "requester2@simplejourney.id", nil, 15},
+		{"Permintaan lisensi Figma dari Siti", "Tim desain butuh 1 lisensi Figma Professional tambahan untuk bulan ini.", "Software", domain.PriorityLow, domain.StatusResolved, "requester2@helpdesk.local", ids["agent@helpdesk.local"], 48},
+		{"Kursi kerja Siti rusak", "Kursi di meja saya hidroliknya tidak bisa naik turun. Mohon diganti.", "HR/Facility", domain.PriorityMedium, domain.StatusClosed, "requester2@helpdesk.local", ids["agent@helpdesk.local"], 96},
+		{"Monitor Siti berkedip saat digunakan", "Monitor eksternal berkedip setiap beberapa menit setelah docking station terpasang.", "Hardware", domain.PriorityMedium, domain.StatusOpen, "requester2@helpdesk.local", nil, 12},
+		{"Siti lupa password akun HRIS", "Password HRIS saya tidak diterima setelah reset via email, tolong dibukakan kembali.", "IT Support", domain.PriorityHigh, domain.StatusInProgress, "requester2@helpdesk.local", ids["agent@helpdesk.local"], 20},
+		{"VPN Siti sering terputus saat video call", "Koneksi VPN drop setiap 5-10 menit saat meeting, sinyal Wi-Fi stabil saja.", "Network", domain.PriorityMedium, domain.StatusOpen, "requester2@helpdesk.local", nil, 3},
+		{"Permintaan instalasi antivirus untuk laptop Siti", "Laptop baru belum terpasang antivirus standar perusahaan, mohon dibantu instal.", "Software", domain.PriorityLow, domain.StatusResolved, "requester2@helpdesk.local", ids["agent@helpdesk.local"], 80},
+		{"Meja meeting lantai 2 rusak", "Salah satu kaki meja meeting lantai 2 patah, tidak aman digunakan rapat.", "HR/Facility", domain.PriorityMedium, domain.StatusOpen, "requester2@helpdesk.local", nil, 15},
 	}
 
 	for _, s := range samples {

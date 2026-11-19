@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "Simple Journey Helpdesk API",
-    "description": "Internal helpdesk system for PT Simple Journey Indonesia. Semua endpoint kecuali auth wajib header `Authorization: Bearer <token>`.",
+    "name": "Internal Helpdesk API",
+    "description": "Internal helpdesk system. Semua endpoint kecuali auth wajib header `Authorization: Bearer <token>`." Semua endpoint kecuali auth wajib header `Authorization: Bearer <token>`.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -54,7 +54,7 @@
             "url": "{{baseUrl}}/auth/login",
             "body": {
               "mode": "raw",
-              "raw": "{\"email\": \"admin@simplejourney.id\", \"password\": \"Password123!\"}"
+              "raw": "{\"email\": \"admin@helpdesk.local\", \"password\": \"Password123!\"}"
             }
           },
           "event": [

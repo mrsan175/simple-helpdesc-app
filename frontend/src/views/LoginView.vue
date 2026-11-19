@@ -3,7 +3,7 @@
     <div class="card w-full max-w-md p-6 sm:p-8">
       <div class="text-center mb-8">
         <div class="w-12 h-12 rounded-xl bg-slate-900 text-white font-bold flex items-center justify-center text-lg mx-auto mb-4">
-          SJ
+          HD
         </div>
         <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-100">{{ t('login_title') }}</h1>
         <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">{{ t('login_company') }}</p>
@@ -17,7 +17,7 @@
             v-model.trim="form.email"
             type="email"
             class="input"
-            placeholder="nama@simplejourney.id"
+            placeholder="nama@helpdesk.local"
           />
         </div>
 
@@ -81,10 +81,10 @@ const error = ref('')
 const loading = ref(false)
 
 const demoAccounts = [
-  { label: 'Admin', email: 'admin@simplejourney.id', password: 'Password123!' },
-  { label: 'Agent', email: 'agent@simplejourney.id', password: 'Password123!' },
-  { label: 'Requester A', email: 'requester1@simplejourney.id', password: 'Password123!' },
-  { label: 'Requester B', email: 'requester2@simplejourney.id', password: 'Password123!' }
+  { label: 'Admin', email: 'admin@helpdesk.local', password: 'Password123!' },
+  { label: 'Agent', email: 'agent@helpdesk.local', password: 'Password123!' },
+  { label: 'Requester A', email: 'requester1@helpdesk.local', password: 'Password123!' },
+  { label: 'Requester B', email: 'requester2@helpdesk.local', password: 'Password123!' }
 ]
 
 const fillDemo = (acc) => {

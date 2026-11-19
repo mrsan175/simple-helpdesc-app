@@ -1,6 +1,6 @@
-# Simple Journey Indonesia – Internal Helpdesk System
+# Internal Helpdesk System
 
-Aplikasi web helpdesk internal modern untuk manajemen tiket dukungan TI dan operasional PT Simple Journey Indonesia. Dibangun menggunakan arsitektur Clean/Layered Backend di atas Go dan Frontend reaktif Vue 3.
+Aplikasi web helpdesk internal modern untuk manajemen tiket dukungan TI dan operasional perusahaan. Dibangun menggunakan arsitektur Clean/Layered Backend di atas Go dan Frontend reaktif Vue 3.
 
 ---
 
@@ -27,10 +27,10 @@ Semua akun menggunakan password yang sama: **`Password123!`**.
 
 | Label / Nama | Email | Role | Hak Akses Utama |
 |---|---|---|---|
-| **Admin Simple Journey** | `admin@simplejourney.id` | `admin` | Semua hak akses: kelola role user, ubah assignee/prioritas tiket, full state machine |
-| **Agent Simple Journey** | `agent@simplejourney.id` | `agent` | Mengerjakan tiket (open→in_progress→resolved), auto-assign diri saat proses, mengatur prioritas tiket, internal note |
-| **Requester A (Budi)** | `requester1@simplejourney.id` | `requester` | Buat tiket, pantau tiket milik sendiri, reopen (resolved→open), cancel tiket (open→closed) |
-| **Requester B (Siti)** | `requester2@simplejourney.id` | `requester` | Terisolasi dari Requester A |
+| **Admin Helpdesk** | `admin@helpdesk.local` | `admin` | Semua hak akses: kelola role user, ubah assignee/prioritas tiket, full state machine |
+| **Agent Helpdesk** | `agent@helpdesk.local` | `agent` | Mengerjakan tiket (open→in_progress→resolved), auto-assign diri saat proses, mengatur prioritas tiket, internal note |
+| **Requester A (Budi)** | `requester1@helpdesk.local` | `requester` | Buat tiket, pantau tiket milik sendiri, reopen (resolved→open), cancel tiket (open→closed) |
+| **Requester B (Siti)** | `requester2@helpdesk.local` | `requester` | Terisolasi dari Requester A |
 
 *Tersedia tombol login cepat (Demo Accounts) di halaman `/login`.*
 
@@ -220,7 +220,7 @@ Cakupan 18 test cases:
 ## 8. Struktur Direktori (Monorepo)
 
 ```
-simple-helpedesc-app/
+helpdesk-app/
 ├── backend/
 │   ├── cmd/api/                 # Entrypoint server (main.go)
 │   ├── internal/

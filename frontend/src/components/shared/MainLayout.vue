@@ -12,7 +12,7 @@
       >
         <router-link to="/" class="flex items-center gap-2.5 min-w-0" :title="t('app_title')">
           <div class="w-8 h-8 rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-bold flex items-center justify-center text-sm shrink-0">
-            SJ
+            HD
           </div>
           <div v-if="!sidebarCollapsed" class="min-w-0 leading-tight">
             <h1 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate">{{ t('app_title') }}</h1>
@@ -121,7 +121,7 @@
           <!-- Mobile-only Brand (karena sidebar disembunyikan pada viewport kecil) -->
           <router-link to="/" class="lg:hidden flex items-center gap-2 min-w-0">
             <div class="w-7 h-7 rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-bold flex items-center justify-center text-xs shrink-0">
-              SJ
+              HD
             </div>
             <div class="min-w-0 leading-tight">
               <h1 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate">{{ t('app_title') }}</h1>
@@ -281,7 +281,7 @@
         <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-100 dark:border-slate-800">
           <div class="flex items-center gap-2">
             <div class="w-8 h-8 rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-bold flex items-center justify-center text-sm shrink-0">
-              SJ
+              HD
             </div>
             <div class="font-bold text-slate-900 dark:text-slate-100">{{ t('app_title') }}</div>
           </div>

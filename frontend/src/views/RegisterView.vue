@@ -3,7 +3,7 @@
     <div class="card w-full max-w-md p-6 sm:p-8">
       <div class="text-center mb-8">
         <div class="w-12 h-12 rounded-xl bg-slate-900 text-white font-bold flex items-center justify-center text-lg mx-auto mb-4">
-          SJ
+          HD
         </div>
         <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-100">{{ t('register_title') }}</h1>
         <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">{{ t('register_subtitle') }}</p>
@@ -17,7 +17,7 @@
 
         <div class="space-y-1.5">
           <label for="email" class="label">{{ t('email') }} <span class="text-rose-500">*</span></label>
-          <input id="email" v-model.trim="form.email" type="email" class="input" placeholder="nama@simplejourney.id" />
+          <input id="email" v-model.trim="form.email" type="email" class="input" placeholder="nama@helpdesk.local" />
         </div>
 
         <div class="space-y-1.5">

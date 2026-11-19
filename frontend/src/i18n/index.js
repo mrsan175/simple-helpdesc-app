@@ -4,8 +4,8 @@ import { useSettingsStore } from '../stores/settings'
 export const translations = {
   id: {
     // Nav & Layout
-    app_title: 'Simple Journey',
-    app_subtitle: 'Helpdesk System',
+    app_title: 'Helpdesk',
+    app_subtitle: 'Internal Support System',
     nav_tickets: 'Tiket',
     nav_users: 'Manajemen User',
     logout: 'Keluar',
@@ -27,7 +27,7 @@ export const translations = {
 
     // Login & Register
     login_title: 'Masuk ke Helpdesk',
-    login_company: 'PT Simple Journey Indonesia',
+    login_company: 'Internal Helpdesk',
     email: 'Email',
     password: 'Password',
     login_btn: 'Masuk',
@@ -196,8 +196,8 @@ export const translations = {
   },
   en: {
     // Nav & Layout
-    app_title: 'Simple Journey',
-    app_subtitle: 'Helpdesk System',
+    app_title: 'Helpdesk',
+    app_subtitle: 'Internal Support System',
     nav_tickets: 'Tickets',
     nav_users: 'User Management',
     logout: 'Logout',
@@ -219,7 +219,7 @@ export const translations = {
 
     // Login & Register
     login_title: 'Sign in to Helpdesk',
-    login_company: 'PT Simple Journey Indonesia',
+    login_company: 'Internal Helpdesk',
     email: 'Email',
     password: 'Password',
     login_btn: 'Sign In',
