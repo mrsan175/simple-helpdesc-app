@@ -140,7 +140,7 @@ func TestAPI_TicketsEndpoints(t *testing.T) {
 	agentToken, _ := env.registerAndGetToken(t, "Agent 1", "a1@test.id", "agent")
 	adminToken, _ := env.registerAndGetToken(t, "Admin 1", "adm1@test.id", "admin")
 
-	// Requester creates ticket
+	// Requester creates ticket (priority intentionally omitted / ignored)
 	ticketBody := `{"title":"Network Slow","description":"Takes 5 minutes to load page","category":"Network","priority":"urgent"}`
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/api/tickets", bytes.NewBufferString(ticketBody))
@@ -156,6 +156,9 @@ func TestAPI_TicketsEndpoints(t *testing.T) {
 	}
 	_ = json.Unmarshal(w.Body.Bytes(), &createResp)
 	ticketID := createResp.Data.ID
+	if createResp.Data.Priority != "" {
+		t.Fatalf("requester-supplied priority should be ignored, got %q", createResp.Data.Priority)
+	}
 
 	// Agent tries to create ticket -> 403 Forbidden
 	w = httptest.NewRecorder()

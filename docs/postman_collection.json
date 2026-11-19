@@ -118,7 +118,7 @@
             "url": "{{baseUrl}}/tickets",
             "body": {
               "mode": "raw",
-              "raw": "{\"title\": \"Laptop cannot connect\", \"description\": \"Wi-Fi not working\", \"category\": \"Network\", \"priority\": \"high\"}"
+              "raw": "{\"title\": \"Laptop cannot connect\", \"description\": \"Wi-Fi not working\", \"category\": \"Network\"}"
             }
           },
           "event": [

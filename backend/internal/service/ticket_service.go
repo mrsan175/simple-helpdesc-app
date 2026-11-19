@@ -111,6 +111,10 @@ func (s *TicketService) Create(ctx context.Context, actor *domain.User, req doma
 		return nil, domain.ErrForbidden
 	}
 	priority := req.Priority
+	if actor.Role == domain.RoleRequester {
+		// Requester tidak menentukan prioritas; agent/admin mengaturnya kemudian.
+		priority = ""
+	}
 
 	requesterID := actor.ID
 	requesterUser := actor

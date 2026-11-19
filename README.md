@@ -14,8 +14,8 @@ Aplikasi web helpdesk internal modern untuk manajemen tiket dukungan TI dan oper
 - **Frontend:** Vue 3.5 (Composition API `<script setup>`), Vite 5, Vue Router 4 (navigation guards), Pinia 2 (stores: `auth`, `settings`), Axios 1.7 (interceptor 401), Tailwind CSS 3.4 (`darkMode: 'class'`).
   - **i18n:** module lokal `src/i18n/index.js` (kamus ID/EN + `useI18n()` / `t(key)`), mencakup seluruh UI — bukan hanya chrome.
   - **Theme:** mode gelap/terang via toko Pinia `stores/settings.js`, persisten di `localStorage`, diterapkan sebelum paint pertama (`index.html` inline script) + `src/dark.css` untuk remap global utilitas Tailwind.
-  - **Toolbar atas (navbar):** tombol fullscreen, switch bahasa ID/EN, switch tema, dan **dropdown avatar user** (menu navigasi aplikasi, halaman login/ganti akun, logout) — sticky di atas konten.
-  - **Sidebar:** logo & judul aplikasi di header sidebar, tombol **collapse/expand** di navbar, lebar sidebar tersimpan pada `localStorage`.
+  - **Toolbar atas (navbar):** tombol fullscreen, switch bahasa ID/EN, switch tema, dan dropdown avatar user.
+  - **Loading bar:** indikator progress tipis di bagian paling atas halaman saat perpindahan route.
 - **Database:** PostgreSQL 16 (Container port host `5433:5432`).
 - **Containerization:** Docker multi-stage build (Go distroless-like alpine, Node 20 build → Nginx 1.27 serve) + `docker-compose`.
 
@@ -28,7 +28,7 @@ Semua akun menggunakan password yang sama: **`Password123!`**.
 | Label / Nama | Email | Role | Hak Akses Utama |
 |---|---|---|---|
 | **Admin Simple Journey** | `admin@simplejourney.id` | `admin` | Semua hak akses: kelola role user, ubah assignee/prioritas tiket, full state machine |
-| **Agent Simple Journey** | `agent@simplejourney.id` | `agent` | Mengerjakan tiket (open→in_progress→resolved), auto-assign diri saat proses, internal note |
+| **Agent Simple Journey** | `agent@simplejourney.id` | `agent` | Mengerjakan tiket (open→in_progress→resolved), auto-assign diri saat proses, mengatur prioritas tiket, internal note |
 | **Requester A (Budi)** | `requester1@simplejourney.id` | `requester` | Buat tiket, pantau tiket milik sendiri, reopen (resolved→open), cancel tiket (open→closed) |
 | **Requester B (Siti)** | `requester2@simplejourney.id` | `requester` | Terisolasi dari Requester A |
 
@@ -105,28 +105,15 @@ Semua akun menggunakan password yang sama: **`Password123!`**.
    - Menyajikan KPI operasional: Total Tiket, Tingkat Penyelesaian (Resolution Rate), SLA Breach Rate, Distribusi Kategori & Prioritas, serta Matriks Beban Kerja Agen (Workload).
    - Menjadi default landing route untuk akun `admin`, ditempatkan di posisi teratas navigasi sidebar.
    - Endpoint khusus `GET /api/admin/stats` dengan proteksi role `admin`.
-5. **Desain Layout Modern dengan Sidebar Collapsible & Border Pemisah:**
-   - Logo aplikasi ("SJ" Simple Journey Helpdesk System) berada di header sidebar kiri.
-   - Garis pembatas vertikal penuh (`border-r`) memisahkan sidebar secara tegas dari navbar dan konten.
-   - Tombol toggle collapse di navbar (tepat di samping logo/pembatas) untuk menciutkan sidebar menjadi mode ikon saja (`lg:w-16`) atau memperluasnya (`lg:w-64`), dengan status tersimpan di `localStorage`.
-6. **Dropdown Avatar Navbar Terpadu:**
-   - Klik pada avatar profil di navbar membuka menu dropdown berisi:
-     - Header info akun pengguna (avatar, nama, email, role).
-     - Navigasi rute aplikasi (Statistik, Daftar Tiket, Buat Tiket, Manajemen Pengguna).
-     - Tombol cepat **Halaman Login / Ganti Akun** (`/login`).
-     - Tombol **Keluar (Logout)**.
-7. **Tabel Responsif Ringkas (Table-Fixed Layout) & Penanda Baris Ter-Trigger:**
-   - Desain `table-fixed` tanpa scroll horizontal di mode desktop.
-   - Baris tabel / kartu yang di-expand (deskripsi terbuka) ditandai dengan **highlight warna biru lembut** (`bg-sky-50`), **indikator border kiri** (`border-l-4 border-l-sky-500`), dan chevron yang berotasi serta berubah warna, sehingga pengguna dapat mengenali tiket yang sedang diperiksa secara instan.
-8. **Pengaturan Pelapor Tiket oleh Admin:**
+5. **Pengaturan Pelapor Tiket oleh Admin:**
    - Admin dapat memilih requester saat membuat tiket baru atas nama pengguna lain.
    - Admin dapat mengubah requester pada tiket yang sudah berjalan langsung dari halaman detail tiket.
-9. **CI/CD Pipeline (GitHub Actions):**
+6. **CI/CD Pipeline (GitHub Actions):**
    - Workflow `.github/workflows/ci.yml` otomatis menjalankan Go lint & race detector test, serta validasi build Vue 3 pada setiap push dan pull request.
 
 ---
 
-## 6. Cara Menjalankan Aplikasi
+## 5. Cara Menjalankan Aplikasi
 
 ### Opsi A: Menggunakan Docker Compose (Direkomendasikan)
 
@@ -169,7 +156,7 @@ Layanan yang berjalan:
 
 ---
 
-## 7. Ringkasan API Endpoints
+## 6. Ringkasan API Endpoints
 
 ### Autentikasi
 - `POST /api/auth/register` – Pendaftaran Requester baru (default role: `requester`)
@@ -180,7 +167,7 @@ Layanan yang berjalan:
 - `GET   /api/tickets` – Daftar tiket (dukungan: `page`, `limit`, `status`, `priority`, `assignee_id`, `search`, `sort_by`, `order`)
 - `POST  /api/tickets` – Buat tiket baru (khusus `requester` & `admin`)
 - `GET   /api/tickets/{id}` – Detail tiket beserta thread komentar
-- `PATCH /api/tickets/{id}` – Update tiket (transisi status, prioritas/assignee khusus admin)
+- `PATCH /api/tickets/{id}` – Update tiket (transisi status; prioritas oleh agent/admin; assignee & requester oleh admin)
 - `POST  /api/tickets/{id}/comments` – Tambah komentar (mendukung `is_internal: true` untuk agent/admin)
 
 ### Lampiran & Realtime
@@ -199,7 +186,7 @@ Layanan yang berjalan:
 
 ---
 
-## 8. Pengujian Otomatis (Automated Tests)
+## 7. Pengujian Otomatis (Automated Tests)
 
 Suite pengujian backend mencakup seluruh layer arsitektur (service, state machine, RBAC, dan HTTP router API handler):
 
@@ -208,7 +195,7 @@ cd backend
 go test -v -race ./...
 ```
 
-Cakupan 16 test cases:
+Cakupan 18 test cases:
 1. `TestAPI_AuthEndpoints` – Pendaftaran, login, dan validasi sesi `/api/me`
 2. `TestAPI_TicketsEndpoints` – Siklus CRUD tiket, otorisasi role, dan filter
 3. `TestAPI_CommentsEndpoint` – Komentar publik dan proteksi catatan internal
@@ -222,13 +209,15 @@ Cakupan 16 test cases:
 11. `TestInvalidStatusTransitions` – Penolakan transisi ilegal di state machine
 12. `TestInternalNoteSecurity` – Pencegahan kebocoran catatan internal ke requester
 13. `TestAgentCannotCreateTicket` – Verifikasi larangan role agent membuat tiket
-14. `TestAgentCannotChangePriorityOrAssignee` – Verifikasi proteksi field prioritas/assignee bagi agent
-15. `TestSLAOverdueCalculation` – Kalkulasi SLA overdue untuk tiket urgent/high/medium/low
-16. `TestAttachmentUploadAndAccess` – Validasi tipe berkas dan otorisasi akses lampiran
+14. `TestAgentCanManagePriority` – Agent dapat mengatur prioritas tiket yang awalnya kosong; agent tetap tidak dapat mengubah assignee
+15. `TestAdminCanChangeRequester` – Admin dapat mengubah pelapor tiket; requester/agent ditolak
+16. `TestSLAOverdueCalculation` – Kalkulasi SLA overdue untuk tiket urgent/high/medium/low
+17. `TestAttachmentUploadAndAccess` – Validasi tipe berkas dan otorisasi akses lampiran
+18. `TestBrokerAudienceScoping` – Verifikasi event `ticket_created` hanya diterima agent/admin; event tiket lain diterima requester pemilik tiket
 
 ---
 
-## 9. Struktur Direktori (Monorepo)
+## 8. Struktur Direktori (Monorepo)
 
 ```
 simple-helpedesc-app/

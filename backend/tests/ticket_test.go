@@ -326,17 +326,21 @@ func TestAdminCanChangeRequester(t *testing.T) {
 func TestSLAOverdueCalculation(t *testing.T) {
 	_, tickets, _, ur, tr, _, _ := newHarness()
 	ctx := context.Background()
-	requester, _, _ := seedUsers(t, ur)
+	requester, _, admin := seedUsers(t, ur)
 
-	// Create urgent ticket
+	// Create ticket tanpa prioritas, lalu admin menetapkan urgent
 	ticket, err := tickets.Create(ctx, requester, domain.CreateTicketReq{
 		Title:       "Server down",
 		Description: "Production outage",
 		Category:    "Network",
-		Priority:    domain.PriorityUrgent,
 	})
 	if err != nil {
 		t.Fatalf("create ticket: %v", err)
+	}
+
+	urgent := domain.PriorityUrgent
+	if _, err := tickets.Update(ctx, admin, ticket.ID, domain.UpdateTicketReq{Priority: &urgent}); err != nil {
+		t.Fatalf("admin set priority: %v", err)
 	}
 
 	// Backdate ticket to 3 hours ago (SLA is 2 hours)
