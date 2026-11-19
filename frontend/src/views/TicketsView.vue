@@ -167,7 +167,7 @@
                 <td :colspan="isRequester ? 6 : 7" class="px-3 sm:px-4 py-3 border-t border-slate-100 dark:border-slate-800">
                   <div class="flex items-start justify-between gap-4">
                     <div class="min-w-0">
-                      <p class="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Deskripsi</p>
+                      <p class="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">{{ t('description') }}</p>
                       <p class="text-xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed break-words">
                         {{ ticket.description || '-' }}
                       </p>
@@ -176,7 +176,7 @@
                       class="btn btn-outline btn-sm shrink-0"
                       @click.stop="$router.push(`/tickets/${ticket.id}`)"
                     >
-                      Detail
+                      {{ t('details_btn') }}
                     </button>
                   </div>
                 </td>
@@ -224,7 +224,7 @@
           >
             {{ t('open_detail') }}
           </router-link>
-          <p class="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Deskripsi</p>
+          <p class="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">{{ t('description') }}</p>
           <p class="text-xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed break-words">
             {{ ticket.description || '-' }}
           </p>
