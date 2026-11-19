@@ -123,14 +123,17 @@
         <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
           <template v-for="ticket in tickets" :key="ticket.id">
             <tr
-              class="hover:bg-slate-50/80 dark:hover:bg-slate-800/60 cursor-pointer transition-colors"
+              class="cursor-pointer transition-colors"
+              :class="isExpanded(ticket.id)
+                ? 'bg-sky-50/90 dark:bg-sky-950/40 border-l-4 border-l-sky-500'
+                : 'hover:bg-slate-50/80 dark:hover:bg-slate-800/60 border-l-4 border-l-transparent'"
               @click="toggleExpand(ticket.id)"
             >
               <td class="px-2.5 py-2 align-top whitespace-nowrap">
                 <div class="flex items-center gap-1.5">
                   <svg
-                    class="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0 transition-transform"
-                    :class="isExpanded(ticket.id) ? 'rotate-90' : ''"
+                    class="w-3.5 h-3.5 shrink-0 transition-transform"
+                    :class="isExpanded(ticket.id) ? 'rotate-90 text-sky-600 dark:text-sky-400 font-bold' : 'text-slate-400 dark:text-slate-500'"
                     fill="none" viewBox="0 0 24 24" stroke="currentColor"
                   >
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -164,8 +167,8 @@
                 <p class="text-[11px] text-slate-400 dark:text-slate-500">{{ formatTime(ticket.created_at) }}</p>
               </td>
             </tr>
-            <tr v-if="isExpanded(ticket.id)" class="bg-slate-50/70 dark:bg-slate-800/40">
-              <td :colspan="isRequester ? 6 : 7" class="px-3 sm:px-4 py-3 border-t border-slate-100 dark:border-slate-800">
+            <tr v-if="isExpanded(ticket.id)" class="bg-sky-50/50 dark:bg-sky-950/25 border-l-4 border-l-sky-500">
+              <td :colspan="isRequester ? 6 : 7" class="px-3 sm:px-4 py-3 border-t border-sky-100 dark:border-sky-900/40">
                 <div class="flex items-start justify-between gap-4">
                   <div class="min-w-0">
                     <p class="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">{{ t('description') }}</p>
@@ -192,7 +195,10 @@
       <div
         v-for="ticket in tickets"
         :key="ticket.id"
-        class="card p-3 cursor-pointer hover:bg-slate-50/80 dark:hover:bg-slate-800/60 transition-colors"
+        class="card p-3 cursor-pointer transition-colors border-l-4"
+        :class="isExpanded(ticket.id)
+          ? 'bg-sky-50/80 dark:bg-sky-950/40 border-l-sky-500'
+          : 'hover:bg-slate-50/80 dark:hover:bg-slate-800/60 border-l-transparent'"
         @click="toggleExpand(ticket.id)"
       >
         <div class="flex items-start justify-between gap-2">

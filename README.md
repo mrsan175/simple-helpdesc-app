@@ -14,7 +14,8 @@ Aplikasi web helpdesk internal modern untuk manajemen tiket dukungan TI dan oper
 - **Frontend:** Vue 3.5 (Composition API `<script setup>`), Vite 5, Vue Router 4 (navigation guards), Pinia 2 (stores: `auth`, `settings`), Axios 1.7 (interceptor 401), Tailwind CSS 3.4 (`darkMode: 'class'`).
   - **i18n:** module lokal `src/i18n/index.js` (kamus ID/EN + `useI18n()` / `t(key)`), mencakup seluruh UI — bukan hanya chrome.
   - **Theme:** mode gelap/terang via toko Pinia `stores/settings.js`, persisten di `localStorage`, diterapkan sebelum paint pertama (`index.html` inline script) + `src/dark.css` untuk remap global utilitas Tailwind.
-  - **Toolbar atas (navbar):** tombol fullscreen, switch bahasa ID/EN, switch tema, info user — sticky di atas sidebar & konten.
+  - **Toolbar atas (navbar):** tombol fullscreen, switch bahasa ID/EN, switch tema, dan **dropdown avatar user** (menu navigasi aplikasi, halaman login/ganti akun, logout) — sticky di atas konten.
+  - **Sidebar:** logo & judul aplikasi di header sidebar, tombol **collapse/expand** di navbar, lebar sidebar tersimpan pada `localStorage`.
 - **Database:** PostgreSQL 16 (Container port host `5433:5432`).
 - **Containerization:** Docker multi-stage build (Go distroless-like alpine, Node 20 build → Nginx 1.27 serve) + `docker-compose`.
 
@@ -81,22 +82,42 @@ Semua akun menggunakan password yang sama: **`Password123!`**.
 
 ---
 
-## 4. Fitur Bonus (Bonus Features)
+## 4. Fitur Tambahan & Bonus (Bonus Features)
 
 1. **Lampiran Berkas (File Attachments):**
-   - Mendukung unggah berkas hingga 5MB pada tiket dengan validasi tipe berkas (ekstensi gambar, PDF, dokumen aman) dan enkapsulasi UUID nama file pada storage server.
+   - Mendukung unggah berkas hingga 5MB pada tiket dengan validasi ukuran & tipe berkas (gambar, PDF, dokumen aman).
+   - Enkapsulasi nama berkas dengan UUID pada storage server.
    - Endpoint `POST /api/tickets/{id}/attachments` dan `GET /api/attachments/{id}/download`.
-   - Berkas dapat dilampirkan saat membuat tiket maupun saat mengirim komentar.
-2. **Notifikasi Real-Time (Server-Sent Events / SSE):**
+   - Berkas dapat dilampirkan langsung saat membuat tiket maupun saat mengirim komentar/balasan.
+2. **Notifikasi Real-Time Berbasis Role & Kepemilikan (SSE with Audience Scoping):**
    - In-memory event broker tanpa dependensi eksternal via endpoint `GET /api/events`.
-   - Fan-out notifikasi instan untuk tiket dibuat, tiket diupdate, komentar baru, dan lampiran baru, langsung memperbarui data di antarmuka pengguna tanpa refresh.
+   - Event `ticket_created` **hanya dikirimkan dan ditampilkan kepada `agent` dan `admin`** (tidak bocor ke requester lain).
+   - Event `ticket_updated`, `comment_added`, dan `attachment_added` discoped khusus untuk staf (`agent`, `admin`) dan pembuat tiket terkait (`requester_id`).
+   - Fan-out notifikasi instan memperbarui data dan badge secara otomatis di UI tanpa perlu refresh.
 3. **Pelacakan SLA (Service Level Agreement):**
    - Otomatis menghitung status overdue berdasarkan tingkat urgensi tiket (Urgent 4 jam, High 8 jam, Medium 24 jam, Low 48 jam).
    - Indikator visual badge **Terlambat / Overdue** muncul otomatis pada detail dan daftar tiket.
 4. **Halaman Statistik Admin Terperinci:**
    - Menyajikan KPI operasional: Total Tiket, Tingkat Penyelesaian (Resolution Rate), SLA Breach Rate, Distribusi Kategori & Prioritas, serta Matriks Beban Kerja Agen (Workload).
+   - Menjadi default landing route untuk akun `admin`, ditempatkan di posisi teratas navigasi sidebar.
    - Endpoint khusus `GET /api/admin/stats` dengan proteksi role `admin`.
-5. **CI/CD Pipeline (GitHub Actions):**
+5. **Desain Layout Modern dengan Sidebar Collapsible & Border Pemisah:**
+   - Logo aplikasi ("SJ" Simple Journey Helpdesk System) berada di header sidebar kiri.
+   - Garis pembatas vertikal penuh (`border-r`) memisahkan sidebar secara tegas dari navbar dan konten.
+   - Tombol toggle collapse di navbar (tepat di samping logo/pembatas) untuk menciutkan sidebar menjadi mode ikon saja (`lg:w-16`) atau memperluasnya (`lg:w-64`), dengan status tersimpan di `localStorage`.
+6. **Dropdown Avatar Navbar Terpadu:**
+   - Klik pada avatar profil di navbar membuka menu dropdown berisi:
+     - Header info akun pengguna (avatar, nama, email, role).
+     - Navigasi rute aplikasi (Statistik, Daftar Tiket, Buat Tiket, Manajemen Pengguna).
+     - Tombol cepat **Halaman Login / Ganti Akun** (`/login`).
+     - Tombol **Keluar (Logout)**.
+7. **Tabel Responsif Ringkas (Table-Fixed Layout) & Penanda Baris Ter-Trigger:**
+   - Desain `table-fixed` tanpa scroll horizontal di mode desktop.
+   - Baris tabel / kartu yang di-expand (deskripsi terbuka) ditandai dengan **highlight warna biru lembut** (`bg-sky-50`), **indikator border kiri** (`border-l-4 border-l-sky-500`), dan chevron yang berotasi serta berubah warna, sehingga pengguna dapat mengenali tiket yang sedang diperiksa secara instan.
+8. **Pengaturan Pelapor Tiket oleh Admin:**
+   - Admin dapat memilih requester saat membuat tiket baru atas nama pengguna lain.
+   - Admin dapat mengubah requester pada tiket yang sudah berjalan langsung dari halaman detail tiket.
+9. **CI/CD Pipeline (GitHub Actions):**
    - Workflow `.github/workflows/ci.yml` otomatis menjalankan Go lint & race detector test, serta validasi build Vue 3 pada setiap push dan pull request.
 
 ---
