@@ -44,10 +44,14 @@ Semua akun menggunakan password yang sama: **`Password123!`**.
 - **Isolasi Data Requester:** Requester hanya dapat membaca tiket miliknya sendiri (`WHERE requester_id = current_user.id`).
 
 ### 3.2. Properti Tiket (Assignee & Prioritas)
+- **Prioritas (Priority):**
+  - Pembuatan tiket baru tidak mewajibkan/menentukan prioritas (dapat kosong / belum diatur pada awal).
+  - Baik **Agent** maupun **Admin** dapat menentukan dan memperbarui prioritas tiket kapan saja via antarmuka detail tiket (`PATCH /api/tickets/{id}`).
+  - Requester tidak dapat menentukan atau mengubah prioritas (ditolak `403 Forbidden`).
 - **Assignee:**
   - Saat Agent mengubah status dari `open` ke `in_progress`, tiket **otomatis di-assign** ke Agent tersebut.
-  - Role Agent **tidak memiliki dropdown** Assignee & Prioritas (hanya-baca / read-only). Jika dicoba kirim via API, backend menolak dengan `403 Forbidden`.
-  - Hanya **Admin** yang memiliki dropdown untuk mengubah Assignee dan Prioritas secara manual.
+  - Role Agent **tidak memiliki dropdown** Assignee (hanya-baca / read-only). Jika dicoba kirim via API, backend menolak dengan `403 Forbidden`.
+  - Hanya **Admin** yang memiliki dropdown untuk mengubah Assignee secara manual.
 - **Pelapor (Requester):**
   - Admin dapat membuat tiket atas nama user lain (`requester_id` pada `POST /api/tickets`) dan mengubah pelapor tiket (`requester_id` pada `PATCH /api/tickets/{id}`).
   - Requester & Agent tidak dapat mengubah pelapor (ditolak `403 Forbidden`).

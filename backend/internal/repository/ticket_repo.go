@@ -20,7 +20,7 @@ func NewTicketRepository(db *sql.DB) *TicketRepository {
 
 func (r *TicketRepository) Create(ctx context.Context, ticket *domain.Ticket) error {
 	query := `INSERT INTO tickets (id, title, description, category, priority, status, requester_id, assignee_id, created_at, updated_at)
-              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
+              VALUES ($1, $2, $3, $4, NULLIF($5, ''), $6, $7, $8, $9, $10)`
 	_, err := r.DB.ExecContext(
 		ctx,
 		query,
@@ -41,7 +41,7 @@ func (r *TicketRepository) Create(ctx context.Context, ticket *domain.Ticket) er
 func (r *TicketRepository) FindByID(ctx context.Context, id string) (*domain.Ticket, error) {
 	query := `
 		SELECT 
-			t.id, t.title, t.description, t.category, t.priority, t.status, 
+			t.id, t.title, t.description, t.category, COALESCE(t.priority, ''), t.status, 
 			t.requester_id, t.assignee_id, t.created_at, t.updated_at,
 			u1.id, u1.name, u1.email, u1.role, u1.created_at,
 			u2.id, u2.name, u2.email, u2.role, u2.created_at
@@ -109,9 +109,13 @@ func (r *TicketRepository) List(ctx context.Context, filter domain.TicketFilter)
 	}
 
 	if filter.Priority != "" {
-		whereClauses = append(whereClauses, fmt.Sprintf("t.priority = $%d", idx))
-		args = append(args, filter.Priority)
-		idx++
+		if filter.Priority == "unset" {
+			whereClauses = append(whereClauses, "(t.priority IS NULL OR t.priority = '')")
+		} else {
+			whereClauses = append(whereClauses, fmt.Sprintf("t.priority = $%d", idx))
+			args = append(args, filter.Priority)
+			idx++
+		}
 	}
 
 	if filter.AssigneeID != "" {
@@ -166,7 +170,7 @@ func (r *TicketRepository) List(ctx context.Context, filter domain.TicketFilter)
 
 	query := fmt.Sprintf(`
 		SELECT 
-			t.id, t.title, t.description, t.category, t.priority, t.status, 
+			t.id, t.title, t.description, t.category, COALESCE(t.priority, ''), t.status, 
 			t.requester_id, t.assignee_id, t.created_at, t.updated_at,
 			u1.id, u1.name, u1.email, u1.role, u1.created_at,
 			u2.id, u2.name, u2.email, u2.role, u2.created_at
@@ -230,7 +234,7 @@ func (r *TicketRepository) List(ctx context.Context, filter domain.TicketFilter)
 func (r *TicketRepository) Update(ctx context.Context, ticket *domain.Ticket) error {
 	query := `
 		UPDATE tickets 
-		SET title = $1, description = $2, category = $3, priority = $4, status = $5, assignee_id = $6, requester_id = $7, updated_at = $8
+		SET title = $1, description = $2, category = $3, priority = NULLIF($4, ''), status = $5, assignee_id = $6, requester_id = $7, updated_at = $8
 		WHERE id = $9`
 	res, err := r.DB.ExecContext(
 		ctx,
@@ -320,7 +324,7 @@ func (r *TicketRepository) AdminStats(ctx context.Context, slaHours float64) (*d
 		}
 	}
 
-	rows2, err := r.DB.QueryContext(ctx, `SELECT priority, COUNT(*) FROM tickets WHERE status NOT IN ('closed') GROUP BY priority ORDER BY COUNT(*) DESC`)
+	rows2, err := r.DB.QueryContext(ctx, `SELECT priority, COUNT(*) FROM tickets WHERE status NOT IN ('closed') AND priority IS NOT NULL AND priority != '' GROUP BY priority ORDER BY COUNT(*) DESC`)
 	if err != nil {
 		return nil, err
 	}

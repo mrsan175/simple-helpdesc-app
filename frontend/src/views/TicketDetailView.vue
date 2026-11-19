@@ -254,10 +254,11 @@
               <dd class="mt-1">
                 <select
                   v-if="canEditPriority"
-                  :value="ticket.priority"
+                  :value="ticket.priority || ''"
                   class="input text-xs py-1 h-8"
                   @change="updatePriority($event.target.value)"
                 >
+                  <option value="" disabled>{{ t('select_priority') }}</option>
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
                   <option value="high">High</option>
@@ -390,11 +391,9 @@ const newComment = reactive({ body: '', is_internal: false })
 
 const isAgentOrAdmin = computed(() => auth.isAgent || auth.isAdmin)
 
-// Admin selalu bisa ubah prioritas; agent hanya untuk tiket yang di-assign ke dirinya.
+// Admin dan Agent dapat mengatur prioritas tiket
 const canEditPriority = computed(() => {
-  if (auth.isAdmin) return true
-  if (auth.isAgent) return Boolean(ticket.value?.assignee_id && ticket.value.assignee_id === auth.user?.id)
-  return false
+  return auth.isAdmin || auth.isAgent
 })
 
 const availableActions = computed(() => {

@@ -6,13 +6,16 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useI18n } from '../../i18n'
 
 const props = defineProps({
   priority: {
     type: String,
-    required: true
+    default: ''
   }
 })
+
+const { t } = useI18n()
 
 const label = computed(() => {
   switch (props.priority) {
@@ -25,7 +28,7 @@ const label = computed(() => {
     case 'urgent':
       return 'Urgent'
     default:
-      return props.priority
+      return t('priority_unset')
   }
 })
 
@@ -40,7 +43,7 @@ const badgeClasses = computed(() => {
     case 'urgent':
       return 'bg-rose-50 text-rose-700 border-rose-200 font-semibold'
     default:
-      return 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800'
+      return 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-800 italic font-normal'
   }
 })
 </script>

@@ -71,6 +71,7 @@
           <label for="filter-priority" class="block text-xs font-medium text-slate-700 dark:text-slate-300">{{ t('filter_priority') }}</label>
           <select id="filter-priority" v-model="filters.priority" class="input text-xs sm:text-sm h-9" @change="applyFilters">
             <option value="">{{ t('filter_all_priority') }}</option>
+            <option value="unset">{{ t('filter_unset_priority') }}</option>
             <option value="low">Low</option>
             <option value="medium">Medium</option>
             <option value="high">High</option>

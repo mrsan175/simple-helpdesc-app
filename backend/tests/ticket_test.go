@@ -240,50 +240,38 @@ func TestAgentCannotCreateTicket(t *testing.T) {
 	}
 }
 
-func TestAgentCannotChangePriorityOrAssignee(t *testing.T) {
+func TestAgentCanManagePriority(t *testing.T) {
 	_, tickets, _, ur, _, _, _ := newHarness()
 	ctx := context.Background()
 	requester, agent, _ := seedUsers(t, ur)
 
+	// Tiket dibuat tanpa prioritas (priority kosong)
 	ticket, err := tickets.Create(ctx, requester, domain.CreateTicketReq{
 		Title:       "Locked fields",
-		Description: "agent cannot change assignee",
+		Description: "agent can set priority",
 		Category:    "Hardware",
-		Priority:    domain.PriorityLow,
 	})
 	if err != nil {
 		t.Fatalf("create ticket: %v", err)
 	}
+	if ticket.Priority != "" {
+		t.Fatalf("expected initial priority to be empty, got %s", ticket.Priority)
+	}
 
-	// Agent tidak di-assign: prioritas dilarang
+	// Agent mengatur prioritas tiket
 	urgent := domain.PriorityUrgent
-	if _, err := tickets.Update(ctx, agent, ticket.ID, domain.UpdateTicketReq{Priority: &urgent}); !errors.Is(err, domain.ErrForbidden) {
-		t.Fatalf("agent priority change on unassigned ticket should be forbidden, got %v", err)
-	}
-
-	// Agent memproses tiket: open -> in_progress (auto-assign ke agent)
-	inProgress := domain.StatusInProgress
-	updated, err := tickets.Update(ctx, agent, ticket.ID, domain.UpdateTicketReq{Status: &inProgress})
+	updated, err := tickets.Update(ctx, agent, ticket.ID, domain.UpdateTicketReq{Priority: &urgent})
 	if err != nil {
-		t.Fatalf("agent open -> in_progress should succeed: %v", err)
+		t.Fatalf("agent setting priority should succeed: %v", err)
 	}
-	if updated.AssigneeID == nil || *updated.AssigneeID != agent.ID {
-		t.Fatalf("expected auto-assigned to agent, got %v", updated.AssigneeID)
+	if updated.Priority != domain.PriorityUrgent {
+		t.Fatalf("expected priority urgent, got %s", updated.Priority)
 	}
 
 	// Agent tidak boleh mengubah assignee (misal ke user lain atau unassigned)
 	unassigned := "unassigned"
 	if _, err := tickets.Update(ctx, agent, ticket.ID, domain.UpdateTicketReq{AssigneeID: &unassigned}); !errors.Is(err, domain.ErrForbidden) {
 		t.Fatalf("agent assignee change should be forbidden, got %v", err)
-	}
-
-	// Agent yang sedang mengerjakan tiket BOLEH ubah prioritas
-	updated, err = tickets.Update(ctx, agent, ticket.ID, domain.UpdateTicketReq{Priority: &urgent})
-	if err != nil {
-		t.Fatalf("assigned agent should be allowed to change priority: %v", err)
-	}
-	if updated.Priority != domain.PriorityUrgent {
-		t.Fatalf("expected priority urgent, got %s", updated.Priority)
 	}
 }
 
