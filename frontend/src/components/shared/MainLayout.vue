@@ -174,24 +174,23 @@
 
           <!-- User Menu Dropdown Trigger -->
           <div class="relative ml-1 sm:ml-2 pl-2 border-l border-slate-200 dark:border-slate-800">
-            <button
-              type="button"
-              class="flex items-center gap-2 p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              :aria-label="t('app_routes')"
-              :aria-expanded="userMenuOpen"
-              @click="userMenuOpen = !userMenuOpen"
-            >
-              <div class="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold flex items-center justify-center text-[11px] shrink-0">
-                {{ auth.user?.name?.charAt(0).toUpperCase() }}
-              </div>
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                class="rounded-full p-0.5 hover:ring-2 hover:ring-slate-300 dark:hover:ring-slate-600 transition"
+                :aria-label="t('app_routes')"
+                :aria-expanded="userMenuOpen"
+                @click="userMenuOpen = !userMenuOpen"
+              >
+                <div class="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold flex items-center justify-center text-[11px] shrink-0">
+                  {{ auth.user?.name?.charAt(0).toUpperCase() }}
+                </div>
+              </button>
               <div class="hidden sm:block leading-tight max-w-[10rem] text-left">
                 <p class="text-xs font-medium text-slate-900 dark:text-slate-100 truncate">{{ auth.user?.name }}</p>
                 <p class="text-[10px] text-slate-500 dark:text-slate-400 capitalize truncate">{{ auth.user?.role }}</p>
               </div>
-              <svg class="hidden sm:block w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0 transition-transform" :class="userMenuOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
+            </div>
 
             <!-- Backdrop -->
             <div v-if="userMenuOpen" class="fixed inset-0 z-40" @click="userMenuOpen = false"></div>
@@ -247,13 +246,6 @@
 
               <div class="my-1 border-t border-slate-100 dark:border-slate-800"></div>
 
-              <router-link
-                to="/login"
-                class="flex items-center gap-2 px-2 py-1.5 text-xs rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                @click="userMenuOpen = false"
-              >
-                {{ t('switch_account') }}
-              </router-link>
               <button
                 type="button"
                 class="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-md text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
