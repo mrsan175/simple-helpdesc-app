@@ -8,32 +8,32 @@ import (
 )
 
 // Every content write locks the ticket before checking current access and keeps
-// that lock through commit. FOR UPDATE conflicts with requester reassignment,
-// including updates of this non-key column; an earlier service check is not enough.
-func beginTicketContentWrite(ctx context.Context, db *sql.DB, actor *domain.User, ticketID string) (*sql.Tx, string, error) {
+// that lock through commit. FOR UPDATE conflicts with both closure and requester
+// reassignment; an earlier service check is not enough.
+func beginTicketContentWrite(ctx context.Context, db *sql.DB, actor *domain.User, ticketID string) (*sql.Tx, *domain.Ticket, error) {
 	if actor == nil {
-		return nil, "", domain.ErrUnauthorized
+		return nil, nil, domain.ErrUnauthorized
 	}
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, "", err
+		return nil, nil, err
 	}
-	var requesterID string
-	err = tx.QueryRowContext(ctx, `SELECT requester_id FROM tickets WHERE id = $1 FOR UPDATE`, ticketID).Scan(&requesterID)
+	ticket := &domain.Ticket{ID: ticketID}
+	err = tx.QueryRowContext(ctx, `SELECT requester_id, status FROM tickets WHERE id = $1 FOR UPDATE`, ticketID).Scan(&ticket.RequesterID, &ticket.Status)
 	if err == sql.ErrNoRows {
 		err = domain.ErrNotFound
 	}
-	if err == nil && actor.Role == domain.RoleRequester && requesterID != actor.ID {
+	if err == nil && actor.Role == domain.RoleRequester && ticket.RequesterID != actor.ID {
 		err = domain.ErrForbidden
 	}
 	if err != nil {
 		_ = tx.Rollback()
-		return nil, "", err
+		return nil, nil, err
 	}
-	return tx, requesterID, nil
+	return tx, ticket, nil
 }
 
-func authorizeCommentWrite(ctx context.Context, tx *sql.Tx, actor *domain.User, ticketID, commentID string) error {
+func authorizeCommentWrite(ctx context.Context, tx *sql.Tx, actor *domain.User, ticket *domain.Ticket, commentID string) error {
 	var storedTicketID, authorID string
 	var internal bool
 	err := tx.QueryRowContext(ctx, `SELECT ticket_id, author_id, is_internal FROM comments WHERE id = $1 FOR UPDATE`, commentID).
@@ -44,8 +44,11 @@ func authorizeCommentWrite(ctx context.Context, tx *sql.Tx, actor *domain.User, 
 	if err != nil {
 		return err
 	}
-	if storedTicketID != ticketID || authorID != actor.ID || (internal && actor.Role != domain.RoleAgent && actor.Role != domain.RoleAdmin) {
+	if storedTicketID != ticket.ID || authorID != actor.ID || (internal && actor.Role != domain.RoleAgent && actor.Role != domain.RoleAdmin) {
 		return domain.ErrForbidden
+	}
+	if ticket.Status == domain.StatusClosed {
+		return domain.ErrTicketClosed
 	}
 	return nil
 }
@@ -59,22 +62,22 @@ func beginCommentWrite(ctx context.Context, db *sql.DB, actor *domain.User, id s
 	if err != nil {
 		return nil, err
 	}
-	tx, _, err := beginTicketContentWrite(ctx, db, actor, ticketID)
+	tx, ticket, err := beginTicketContentWrite(ctx, db, actor, ticketID)
 	if err != nil {
 		return nil, err
 	}
-	if err := authorizeCommentWrite(ctx, tx, actor, ticketID, id); err != nil {
+	if err := authorizeCommentWrite(ctx, tx, actor, ticket, id); err != nil {
 		_ = tx.Rollback()
 		return nil, err
 	}
 	return tx, nil
 }
 
-func authorizeAttachmentWrite(ctx context.Context, tx *sql.Tx, actor *domain.User, requesterID string, att *domain.Attachment) error {
+func authorizeAttachmentWrite(ctx context.Context, tx *sql.Tx, actor *domain.User, ticket *domain.Ticket, att *domain.Attachment) error {
 	if att.CommentID != nil {
-		return authorizeCommentWrite(ctx, tx, actor, att.TicketID, *att.CommentID)
+		return authorizeCommentWrite(ctx, tx, actor, ticket, *att.CommentID)
 	}
-	if requesterID != actor.ID {
+	if ticket.RequesterID != actor.ID {
 		return domain.ErrForbidden
 	}
 	return nil
@@ -89,7 +92,7 @@ func beginAttachmentWrite(ctx context.Context, db *sql.DB, actor *domain.User, i
 	if err != nil {
 		return nil, nil, err
 	}
-	tx, requesterID, err := beginTicketContentWrite(ctx, db, actor, ticketID)
+	tx, ticket, err := beginTicketContentWrite(ctx, db, actor, ticketID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -100,7 +103,7 @@ func beginAttachmentWrite(ctx context.Context, db *sql.DB, actor *domain.User, i
 		err = domain.ErrForbidden
 	}
 	if err == nil {
-		err = authorizeAttachmentWrite(ctx, tx, actor, requesterID, att)
+		err = authorizeAttachmentWrite(ctx, tx, actor, ticket, att)
 	}
 	if err != nil {
 		_ = tx.Rollback()

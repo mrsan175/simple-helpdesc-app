@@ -126,8 +126,8 @@
             <tr
               class="cursor-pointer transition-colors"
               :class="isExpanded(ticket.id)
-                ? 'bg-sky-50/90 dark:bg-sky-950/40 border-l-4 border-l-sky-500'
-                : 'hover:bg-slate-50/80 dark:hover:bg-slate-800/60 border-l-4 border-l-transparent'"
+                ? 'ticket-expanded-row bg-sky-50/90 dark:bg-sky-950/40'
+                : 'hover:bg-slate-50/80 dark:hover:bg-slate-800/60'"
               @click="toggleExpand(ticket.id)"
             >
               <td class="px-2.5 py-2 align-top whitespace-nowrap">
@@ -168,7 +168,7 @@
                 <p class="text-[11px] text-slate-400 dark:text-slate-500">{{ formatTime(ticket.created_at) }}</p>
               </td>
             </tr>
-            <tr v-if="isExpanded(ticket.id)" class="bg-sky-50/50 dark:bg-sky-950/25 border-l-4 border-l-sky-500">
+            <tr v-if="isExpanded(ticket.id)" class="ticket-expanded-row bg-sky-50/50 dark:bg-sky-950/25">
               <td :colspan="isRequester ? 6 : 7" class="px-3 sm:px-4 py-3 border-t border-sky-100 dark:border-sky-900/40">
                 <div class="flex items-start justify-between gap-4">
                   <div class="min-w-0">
@@ -465,3 +465,14 @@ onUnmounted(() => {
   listUnsubs.forEach((fn) => fn())
 })
 </script>
+
+<style scoped>
+/*
+ * Borders on <tr> are unreliable with border-collapse, so the open-row marker
+ * is painted on the first cell. This keeps every expanded ticket marked when
+ * several descriptions are open at once.
+ */
+.ticket-expanded-row > td:first-child {
+  box-shadow: inset 4px 0 0 #0ea5e9;
+}
+</style>

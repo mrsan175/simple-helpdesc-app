@@ -23,6 +23,8 @@ func respondError(c *gin.Context, err error) {
 		c.JSON(http.StatusNotFound, errorBody{Error: "Data tidak ditemukan"})
 	case errors.Is(err, domain.ErrConflict):
 		c.JSON(http.StatusConflict, errorBody{Error: "Email sudah terdaftar"})
+	case errors.Is(err, domain.ErrTicketClosed):
+		c.JSON(http.StatusConflict, errorBody{Error: domain.ErrTicketClosed.Error()})
 	case errors.Is(err, domain.ErrInvalidTransition):
 		c.JSON(http.StatusUnprocessableEntity, errorBody{Error: "Transisi status tidak valid"})
 	case errors.Is(err, domain.ErrValidation):

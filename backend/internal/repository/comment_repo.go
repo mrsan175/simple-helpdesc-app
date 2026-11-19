@@ -17,13 +17,16 @@ func NewCommentRepository(db *sql.DB) *CommentRepository {
 }
 
 func (r *CommentRepository) Create(ctx context.Context, actor *domain.User, comment *domain.Comment) error {
-	tx, _, err := beginTicketContentWrite(ctx, r.DB, actor, comment.TicketID)
+	tx, ticket, err := beginTicketContentWrite(ctx, r.DB, actor, comment.TicketID)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 	if comment.AuthorID != actor.ID || (comment.IsInternal && actor.Role != domain.RoleAgent && actor.Role != domain.RoleAdmin) {
 		return domain.ErrForbidden
+	}
+	if ticket.Status == domain.StatusClosed {
+		return domain.ErrTicketClosed
 	}
 	query := `INSERT INTO comments (id, ticket_id, author_id, body, is_internal, created_at)
               VALUES ($1, $2, $3, $4, $5, $6)`

@@ -262,6 +262,9 @@ func (s *TicketService) AddComment(ctx context.Context, actor *domain.User, tick
 		}
 	}
 
+	if ticket.Status == domain.StatusClosed {
+		return nil, domain.ErrTicketClosed
+	}
 	if strings.TrimSpace(req.Body) == "" {
 		return nil, domain.ErrValidation
 	}

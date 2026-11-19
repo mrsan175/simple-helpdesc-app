@@ -47,7 +47,7 @@
               <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
               </svg>
-              {{ t('attachments') }} ({{ (ticket.attachments || []).length }})
+              {{ t('ticket_attachments') }} ({{ (ticket.attachments || []).length }})
             </h2>
             <label
               v-if="isTicketOwner"
@@ -75,6 +75,7 @@
             :attachments="ticket.attachments || []"
             :can-manage="isTicketOwner"
             :busy="isMutating"
+            @preview="openTicketAttachmentPreview"
             @download="downloadAttachment"
             @replace="replaceAttachment"
             @delete="confirmDeleteAttachment"
@@ -128,7 +129,7 @@
                   <span v-if="comment.updated_at" class="block" :title="formatDate(comment.updated_at) + ' · ' + formatTime(comment.updated_at)">{{ t('edited') }}</span>
                 </span>
               </div>
-              <div v-if="editingCommentId === comment.id" class="pl-8 space-y-2">
+              <div v-if="!isClosed && editingCommentId === comment.id" class="pl-8 space-y-2">
                 <label :for="'edit-comment-' + comment.id" class="label">{{ t('edit_comment') }}</label>
                 <textarea :id="'edit-comment-' + comment.id" v-model="editCommentBody" rows="3" class="input" :disabled="isMutating"></textarea>
                 <div class="flex justify-end gap-2">
@@ -142,22 +143,23 @@
                 <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400">{{ t('comment_attachment') }}</p>
                 <AttachmentList
                   :attachments="comment.attachments"
-                  :can-manage="isCommentAuthor(comment)"
+                  :can-manage="isCommentAuthor(comment) && !isClosed"
                   :busy="isMutating"
+                  @preview="openCommentAttachmentPreview(comment, $event)"
                   @download="downloadAttachment"
                   @replace="replaceAttachment"
                   @delete="confirmDeleteAttachment"
                 />
               </div>
 
-              <div v-if="isCommentAuthor(comment) && editingCommentId !== comment.id" class="flex justify-end gap-2 mt-3">
+              <div v-if="isCommentAuthor(comment) && !isClosed && editingCommentId !== comment.id" class="flex justify-end gap-2 mt-3">
                 <button type="button" class="btn btn-outline btn-sm text-xs" :disabled="isMutating" @click="startEditComment(comment)">{{ t('edit_comment') }}</button>
                 <button type="button" class="btn btn-outline btn-sm text-xs text-rose-600 dark:text-rose-400" :disabled="isMutating" @click="confirmDeleteComment(comment)">{{ t('delete_comment') }}</button>
               </div>
             </div>
           </div>
 
-          <div class="mt-5 sm:mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+          <div v-if="!isClosed" class="mt-5 sm:mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
             <label for="comment" class="label text-xs sm:text-sm">{{ t('write_reply') }} <span class="text-rose-500">*</span></label>
             <textarea
               id="comment"
@@ -193,21 +195,16 @@
                   @change="handleCommentFileSelected"
                 />
               </label>
-
-              <div v-if="commentFile" class="flex items-center gap-2 text-[11px] bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-md min-w-0">
-                <span class="font-medium text-slate-700 dark:text-slate-300 truncate">{{ commentFile.name }}</span>
-                <span class="text-slate-400 dark:text-slate-500 shrink-0">({{ formatFileSize(commentFile.size) }})</span>
-                <button
-                  type="button"
-                  class="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 shrink-0"
-                  :title="t('cancel')"
-                  :disabled="isMutating"
-                  @click="removeCommentFile"
-                >
-                  ✕
-                </button>
-              </div>
             </div>
+
+            <DraftFilePreview
+              :file="commentFile"
+              :busy="isMutating"
+              class="mt-2.5"
+              @preview="openDraftPreview"
+              @remove="removeCommentFile"
+            />
+
             <div v-if="commentFileError" class="text-[11px] text-rose-600 dark:text-rose-400 font-medium mt-1">
               {{ commentFileError }}
             </div>
@@ -222,6 +219,10 @@
                 {{ submitting ? t('sending') : pendingCommentId ? (commentFile ? t('retry_attachment') : t('finish_comment')) : t('send_reply') }}
               </button>
             </div>
+          </div>
+
+          <div v-else class="mt-5 sm:mt-6 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300" role="status">
+            {{ t('discussion_closed_notice') }}
           </div>
         </div>
       </div>
@@ -357,6 +358,14 @@
       </div>
     </div>
 
+    <FilePreview
+      v-if="previewTarget"
+      :file="previewTarget.file"
+      :attachment="previewTarget.attachment"
+      :context-label="previewTarget.contextLabel"
+      @close="previewTarget = null"
+    />
+
     <ConfirmDialog
       v-if="pendingAction"
       :open="!!pendingAction"
@@ -386,6 +395,8 @@ import LoadingSkeleton from '../components/shared/LoadingSkeleton.vue'
 import ErrorAlert from '../components/shared/ErrorAlert.vue'
 import ConfirmDialog from '../components/shared/ConfirmDialog.vue'
 import AttachmentList from '../components/shared/AttachmentList.vue'
+import FilePreview from '../components/shared/FilePreview.vue'
+import DraftFilePreview from '../components/shared/DraftFilePreview.vue'
 import Toast from '../components/shared/Toast.vue'
 import { canTransition } from '../constants/ticket'
 import { useI18n } from '../i18n'
@@ -414,13 +425,22 @@ const editingCommentId = ref(null)
 const editCommentBody = ref('')
 // Keep a saved comment ID when its separate upload fails, so retrying cannot duplicate it.
 const pendingCommentId = ref(null)
+const previewTarget = ref(null)
 const isMutating = computed(() => contentBusy.value || submitting.value || uploadingFile.value)
 const isTicketOwner = computed(() => !!ticket.value && ticket.value.requester_id === auth.user?.id)
+const isClosed = computed(() => ticket.value?.status === 'closed')
 const isCommentAuthor = (comment) => comment.author_id === auth.user?.id
 
 const newComment = reactive({ body: '', is_internal: false })
 
 const isAgentOrAdmin = computed(() => auth.isAgent || auth.isAdmin)
+
+const STATUS_LABEL_KEYS = {
+  open: 'stat_open',
+  in_progress: 'stat_in_progress',
+  resolved: 'stat_resolved',
+  closed: 'stat_closed'
+}
 
 // Admin dan Agent dapat mengatur prioritas tiket
 const canEditPriority = computed(() => {
@@ -485,12 +505,28 @@ const changeStatus = (target) => {
     closed: t('action_closed'),
     open: t('action_reopen')
   }[target]
+  const statusKey = {
+    open: 'stat_open',
+    in_progress: 'stat_in_progress',
+    resolved: 'stat_resolved',
+    closed: 'stat_closed'
+  }[target]
+  const impactKey = {
+    open: 'impact_reopen',
+    in_progress: 'impact_in_progress',
+    resolved: 'impact_resolved',
+    closed: 'impact_closed'
+  }[target]
 
   pendingAction.value = {
     kind: 'status',
     target,
-    title: label,
-    message: t('confirm_status', { label }),
+    title: t('status_change_title'),
+    message: [
+      `${t('status_from')}: ${t(STATUS_LABEL_KEYS[ticket.value.status] || 'th_status')}`,
+      `${t('status_to')}: ${t(statusKey)}`,
+      `${t('status_impact')}: ${t(impactKey)}`
+    ].join('\n'),
     confirmLabel: label,
     destructive: target === 'closed'
   }
@@ -570,7 +606,7 @@ const updateRequester = async (requesterId) => {
 }
 
 const startEditComment = (comment) => {
-  if (!isCommentAuthor(comment) || isMutating.value) return
+  if (isClosed.value || !isCommentAuthor(comment) || isMutating.value) return
   editingCommentId.value = comment.id
   editCommentBody.value = comment.body
 }
@@ -581,7 +617,7 @@ const cancelEditComment = () => {
 }
 
 const saveComment = async (id) => {
-  if (isMutating.value || !editCommentBody.value.trim()) return
+  if (isClosed.value || isMutating.value || !editCommentBody.value.trim()) return
   contentBusy.value = true
   try {
     await ticketService.updateComment(id, { body: editCommentBody.value.trim() })
@@ -596,7 +632,7 @@ const saveComment = async (id) => {
 }
 
 const confirmDeleteComment = (comment) => {
-  if (!isCommentAuthor(comment) || isMutating.value) return
+  if (isClosed.value || !isCommentAuthor(comment) || isMutating.value) return
   pendingAction.value = {
     kind: 'deleteComment', id: comment.id,
     title: t('delete_comment'), message: t('confirm_delete_comment'),
@@ -662,7 +698,7 @@ const resetCommentDraft = () => {
 }
 
 const submitComment = async () => {
-  if (isMutating.value) return
+  if (isClosed.value || isMutating.value) return
   if (!pendingCommentId.value && !newComment.body.trim()) {
     commentFileError.value = t('comment_body_required')
     return
@@ -743,6 +779,27 @@ const handleFileUpload = async (event) => {
 
 const downloadAttachment = (attachmentId) => {
   ticketService.downloadAttachment(attachmentId)
+}
+
+const openTicketAttachmentPreview = (attachment) => {
+  previewTarget.value = {
+    attachment,
+    contextLabel: t('preview_context_ticket')
+  }
+}
+
+const openCommentAttachmentPreview = (comment, attachment) => {
+  previewTarget.value = {
+    attachment,
+    contextLabel: `${t('preview_context_comment')} — ${comment.author?.name || 'User'}`
+  }
+}
+
+const openDraftPreview = (file) => {
+  previewTarget.value = {
+    file,
+    contextLabel: t('preview_context_comment')
+  }
 }
 
 let detailUnsubs = []

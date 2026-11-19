@@ -61,6 +61,7 @@ func SetupRouter(cfg RouterConfig) *gin.Engine {
 		attachments := api.Group("/attachments", middleware.Auth(cfg.JWTSecret))
 		{
 			attachments.GET("/:id/download", cfg.TicketHandler.DownloadAttachment)
+			attachments.GET("/:id/preview", cfg.TicketHandler.PreviewAttachment)
 			attachments.PATCH("/:id", cfg.TicketHandler.ReplaceAttachment)
 			attachments.DELETE("/:id", cfg.TicketHandler.DeleteAttachment)
 		}

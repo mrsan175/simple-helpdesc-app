@@ -299,7 +299,7 @@ func TestPostgresContentWriteWaitsForReassignmentCommit(t *testing.T) {
 		err := db.QueryRowContext(ctx, `SELECT EXISTS (
 			SELECT 1 FROM pg_stat_activity
 			WHERE $1::int = ANY(pg_blocking_pids(pid))
-			AND query LIKE 'SELECT requester_id FROM tickets%FOR UPDATE%'
+			AND query LIKE 'SELECT requester_id, status FROM tickets%FOR UPDATE%'
 		)`, reassignPID).Scan(&blocked)
 		if err != nil {
 			t.Fatal(err)

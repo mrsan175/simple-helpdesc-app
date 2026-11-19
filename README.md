@@ -210,14 +210,17 @@ Pada alamat `/api/tickets/{id}`, `{id}` adalah kode unik laporan. Daftar laporan
 | PATCH | `/api/attachments/{id}` | Pemilik lampiran sesuai keterangannya di bawah | Mengganti berkas dengan file baru, maksimal 5 MiB. `{id}` adalah kode lampiran. |
 | DELETE | `/api/attachments/{id}` | Pemilik lampiran sesuai keterangannya di bawah | Menghapus berkas lampiran. `{id}` adalah kode lampiran. |
 | GET | `/api/attachments/{id}/download` | Pemilik laporan terkait, petugas, pengelola | Mengunduh file lampiran. `{id}` adalah kode lampiran, bukan kode laporan. |
+| GET | `/api/attachments/{id}/preview` | Pemilik laporan terkait, petugas, pengelola | Menampilkan pratinjau file langsung di aplikasi. `{id}` adalah kode lampiran. |
 | GET | `/api/events` | Pengguna yang sudah masuk | Menerima pemberitahuan perubahan laporan sesuai hak aksesnya. |
 
 Ada dua tempat untuk menyimpan berkas:
 
 - **Lampiran utama laporan:** hanya pemilik laporan (pelapor yang tercatat pada tiket) yang boleh menambah, mengganti, atau menghapusnya. Petugas maupun pengelola tidak mendapat pengecualian atas aturan ini.
-- **Lampiran komentar:** petugas mengirim berkas bersama komentar. Berkas tampil pada komentar tersebut, bukan pada daftar lampiran utama, dan hanya penulis komentar yang boleh mengganti atau menghapusnya. Tulis isi komentar sebelum mengirim berkas.
+- **Lampiran komentar:** petugas mengirim berkas bersama komentar. Berkas tampil pada komentar tersebut, bukan pada daftar lampiran utama, dan hanya penulis komentar yang boleh mengganti atau menghapusnya. Tulis isi komentar sebelum mengirim berkas. Berkas yang dipilih baru diunggah saat tombol **Kirim Balasan** ditekan; sebelum itu pratinjau diproses secara lokal di browser. Setelah terkirim, gunakan tombol **Pratinjau** pada lampiran untuk melihat isinya langsung di aplikasi tanpa mengunduh.
 
-Berkas pada **catatan internal** hanya dapat diunduh petugas dan pengelola yang dapat mengakses tiket; pelapor tidak bisa melihat atau mengunduhnya. Semua tindakan tetap memerlukan akses ke tiket terkait.
+Berkas pada **catatan internal** hanya dapat dilihat atau diunduh petugas dan pengelola yang dapat mengakses tiket; pelapor tidak bisa melihat atau mengunduhnya. Semua tindakan tetap memerlukan akses ke tiket terkait.
+
+Jika status tiket sudah **Closed**, diskusi bersifat hanya-baca. Komentar dan berkas yang sudah ada tetap dapat dilihat, dipratinjau, dan diunduh, tetapi tidak dapat ditambah, diedit, atau dihapus. Lampiran utama tiket masih dapat dikelola oleh pemiliknya. Setiap perubahan status selalu meminta konfirmasi yang menjelaskan status asal, status tujuan, dan dampaknya.
 
 Lampiran lama tetap disimpan sebagai lampiran utama karena sebelumnya tidak ada catatan yang menghubungkannya ke komentar. Berkas lama tidak otomatis dianggap sebagai lampiran catatan internal.
 

@@ -52,6 +52,9 @@ export const ticketService = {
     // Direct link with token or window open
     window.open(`${baseURL}/attachments/${attachmentId}/download?token=${token}`, '_blank')
   },
+  previewAttachment(attachmentId, signal) {
+    return api.get(`/attachments/${attachmentId}/preview`, { responseType: 'blob', signal }).then((r) => r.data)
+  },
   stats() {
     return api.get('/stats').then((r) => r.data)
   },

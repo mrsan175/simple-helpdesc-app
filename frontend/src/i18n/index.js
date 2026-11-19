@@ -1,5 +1,6 @@
 import { computed } from 'vue'
 import { useSettingsStore } from '../stores/settings'
+import { previewMessages } from './file-preview'
 
 export const translations = {
   id: {
@@ -113,7 +114,15 @@ export const translations = {
     action_resolved: 'Tandai Resolved',
     action_closed: 'Tutup Tiket',
     action_reopen: 'Buka Kembali (Reopen)',
-    confirm_status: 'Apakah Anda yakin ingin mengubah status tiket ke "{label}"?',
+    status_change_title: 'Ubah Status Tiket',
+    status_from: 'Status asal',
+    status_to: 'Status tujuan',
+    status_impact: 'Dampak',
+    impact_in_progress: 'Tiket mulai ditangani. Diskusi, komentar, dan berkas masih dapat ditambahkan.',
+    impact_resolved: 'Tiket ditandai selesai. Diskusi masih dapat dilanjutkan sampai tiket ditutup.',
+    impact_closed: 'Diskusi dikunci. Komentar dan berkas yang sudah ada tetap dapat dilihat, tetapi tidak dapat ditambah, diedit, atau dihapus.',
+    impact_reopen: 'Tiket dibuka kembali dan diskusi dapat dilanjutkan seperti biasa.',
+    discussion_closed_notice: 'Tiket sudah ditutup. Diskusi bersifat hanya-baca: komentar dan berkas tetap dapat dilihat, tetapi tidak dapat ditambah, diedit, atau dihapus.',
     status_updated: 'Status tiket berhasil diperbarui',
     status_update_failed: 'Gagal memperbarui status',
 
@@ -135,7 +144,10 @@ export const translations = {
     requester_updated: 'Pelapor tiket berhasil diperbarui',
     requester_update_failed: 'Gagal memperbarui pelapor',
     attach_file: 'Sertakan Berkas',
+    ticket_attachments: 'Lampiran Tiket',
     comment_attachment: 'Lampiran Komentar',
+    preview_context_ticket: 'Lampiran tiket',
+    preview_context_comment: 'Lampiran komentar',
     collapse_sidebar: 'Ciutkan Menu',
     expand_sidebar: 'Perluas Menu',
     app_routes: 'Navigasi Aplikasi',
@@ -323,7 +335,15 @@ export const translations = {
     action_resolved: 'Mark Resolved',
     action_closed: 'Close Ticket',
     action_reopen: 'Reopen Ticket',
-    confirm_status: 'Are you sure you want to change the ticket status to "{label}"?',
+    status_change_title: 'Change Ticket Status',
+    status_from: 'Current status',
+    status_to: 'New status',
+    status_impact: 'Impact',
+    impact_in_progress: 'The ticket is now being handled. Discussion, comments, and files can still be added.',
+    impact_resolved: 'The ticket is marked as resolved. Discussion can continue until the ticket is closed.',
+    impact_closed: 'Discussion is locked. Existing comments and files stay visible, but cannot be added, edited, or deleted.',
+    impact_reopen: 'The ticket is reopened and discussion can continue as usual.',
+    discussion_closed_notice: 'This ticket is closed. The discussion is read-only: existing comments and files stay visible, but cannot be added, edited, or deleted.',
     status_updated: 'Ticket status updated',
     status_update_failed: 'Failed to update status',
 
@@ -345,7 +365,10 @@ export const translations = {
     requester_updated: 'Ticket requester updated successfully',
     requester_update_failed: 'Failed to update requester',
     attach_file: 'Attach File',
-    comment_attachment: 'Comment Attachment',
+    ticket_attachments: 'Ticket Attachments',
+    comment_attachment: 'Comment Attachments',
+    preview_context_ticket: 'Ticket attachment',
+    preview_context_comment: 'Comment attachment',
     collapse_sidebar: 'Collapse Sidebar',
     expand_sidebar: 'Expand Sidebar',
     app_routes: 'App Navigation',
@@ -423,6 +446,9 @@ export const translations = {
     rt_attachment_added: 'New attachment added'
   }
 }
+
+Object.assign(translations.id, previewMessages.id)
+Object.assign(translations.en, previewMessages.en)
 
 export function useI18n() {
   const settings = useSettingsStore()

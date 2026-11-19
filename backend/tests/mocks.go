@@ -177,10 +177,27 @@ func (m *MockTicketRepo) AdminStats(ctx context.Context, slaHours float64) (*dom
 	}, nil
 }
 
+// lockDiscussion mirrors the repository ticket-row lock for discussion writes.
+func (m *MockTicketRepo) lockDiscussion(ticketID string) (func(), error) {
+	m.mu.Lock()
+	ticket, ok := m.tickets[ticketID]
+	if !ok {
+		m.mu.Unlock()
+		return nil, domain.ErrNotFound
+	}
+	if ticket.Status == domain.StatusClosed {
+		m.mu.Unlock()
+		return nil, domain.ErrTicketClosed
+	}
+	return m.mu.Unlock, nil
+}
+
 type MockCommentRepo struct {
 	mu          sync.Mutex
+	tickets     *MockTicketRepo
 	comments    []*domain.Comment
 	attachments *MockAttachmentRepo
+	CreateErr   error
 	UpdateErr   error
 	DeleteErr   error
 }
@@ -190,8 +207,16 @@ func NewMockCommentRepo() *MockCommentRepo {
 }
 
 func (m *MockCommentRepo) Create(ctx context.Context, actor *domain.User, c *domain.Comment) error {
+	unlock, err := m.tickets.lockDiscussion(c.TicketID)
+	if err != nil {
+		return err
+	}
+	defer unlock()
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if m.CreateErr != nil {
+		return m.CreateErr
+	}
 	cp := *c
 	m.comments = append(m.comments, &cp)
 	return nil
@@ -227,6 +252,15 @@ func (m *MockCommentRepo) FindByID(ctx context.Context, id string) (*domain.Comm
 }
 
 func (m *MockCommentRepo) Update(ctx context.Context, actor *domain.User, c *domain.Comment) error {
+	stored, err := m.FindByID(ctx, c.ID)
+	if err != nil {
+		return err
+	}
+	unlock, err := m.tickets.lockDiscussion(stored.TicketID)
+	if err != nil {
+		return err
+	}
+	defer unlock()
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.UpdateErr != nil {
@@ -244,6 +278,15 @@ func (m *MockCommentRepo) Update(ctx context.Context, actor *domain.User, c *dom
 }
 
 func (m *MockCommentRepo) Delete(ctx context.Context, actor *domain.User, id string) ([]*domain.Attachment, error) {
+	stored, err := m.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	unlock, err := m.tickets.lockDiscussion(stored.TicketID)
+	if err != nil {
+		return nil, err
+	}
+	defer unlock()
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.DeleteErr != nil {
@@ -276,6 +319,7 @@ func (m *MockCommentRepo) Delete(ctx context.Context, actor *domain.User, id str
 
 type MockAttachmentRepo struct {
 	mu          sync.Mutex
+	tickets     *MockTicketRepo
 	attachments []*domain.Attachment
 	comments    *MockCommentRepo
 	CreateErr   error
@@ -287,7 +331,19 @@ func NewMockAttachmentRepo() *MockAttachmentRepo {
 	return &MockAttachmentRepo{}
 }
 
+func (m *MockAttachmentRepo) lockWrite(att *domain.Attachment) (func(), error) {
+	if att.CommentID == nil {
+		return func() {}, nil
+	}
+	return m.tickets.lockDiscussion(att.TicketID)
+}
+
 func (m *MockAttachmentRepo) Create(ctx context.Context, actor *domain.User, att *domain.Attachment) error {
+	unlock, err := m.lockWrite(att)
+	if err != nil {
+		return err
+	}
+	defer unlock()
 	if att.CommentID != nil && m.comments != nil {
 		m.comments.mu.Lock()
 		defer m.comments.mu.Unlock()
@@ -338,6 +394,15 @@ func (m *MockAttachmentRepo) ListByComment(ctx context.Context, id string) ([]*d
 }
 
 func (m *MockAttachmentRepo) Replace(ctx context.Context, actor *domain.User, att *domain.Attachment) (string, error) {
+	stored, err := m.FindByID(ctx, att.ID)
+	if err != nil {
+		return "", err
+	}
+	unlock, err := m.lockWrite(stored)
+	if err != nil {
+		return "", err
+	}
+	defer unlock()
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.ReplaceErr != nil {
@@ -354,6 +419,15 @@ func (m *MockAttachmentRepo) Replace(ctx context.Context, actor *domain.User, at
 }
 
 func (m *MockAttachmentRepo) Delete(ctx context.Context, actor *domain.User, id string) (*domain.Attachment, error) {
+	stored, err := m.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	unlock, err := m.lockWrite(stored)
+	if err != nil {
+		return nil, err
+	}
+	defer unlock()
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.DeleteErr != nil {

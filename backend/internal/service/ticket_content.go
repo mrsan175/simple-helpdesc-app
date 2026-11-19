@@ -45,6 +45,9 @@ func (s *TicketService) ownComment(ctx context.Context, actor *domain.User, id s
 	if comment.AuthorID != actor.ID {
 		return nil, nil, domain.ErrForbidden
 	}
+	if ticket.Status == domain.StatusClosed {
+		return nil, nil, domain.ErrTicketClosed
+	}
 	return comment, ticket, nil
 }
 
@@ -197,6 +200,9 @@ func (s *TicketService) managedAttachment(ctx context.Context, actor *domain.Use
 	}
 	if ownerID != actor.ID {
 		return nil, nil, domain.ErrForbidden
+	}
+	if att.CommentID != nil && ticket.Status == domain.StatusClosed {
+		return nil, nil, domain.ErrTicketClosed
 	}
 	return att, ticket, nil
 }

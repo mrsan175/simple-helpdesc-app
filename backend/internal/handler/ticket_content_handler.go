@@ -2,9 +2,13 @@ package handler
 
 import (
 	"log"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
+	"unicode"
 
 	"github.com/gin-gonic/gin"
 
@@ -61,6 +65,78 @@ func (h *TicketHandler) DeleteAttachment(c *gin.Context) {
 	}
 	h.removeAttachmentFile(deleted.FilePath)
 	c.Status(http.StatusNoContent)
+}
+
+func (h *TicketHandler) PreviewAttachment(c *gin.Context) {
+	c.Header("Cache-Control", "private, no-store")
+	c.Header("X-Content-Type-Options", "nosniff")
+	user := middleware.CurrentUser(c)
+	if user == nil {
+		respondError(c, domain.ErrUnauthorized)
+		return
+	}
+	att, err := h.ticketService.GetAttachment(c.Request.Context(), user, c.Param("id"))
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+
+	// Open before writing file headers so a missing disk file remains a safe JSON
+	// error, not a successful preview or a filesystem error containing its path.
+	file, err := os.Open(att.FilePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			respondError(c, domain.ErrNotFound)
+		} else {
+			respondError(c, err)
+		}
+		return
+	}
+	defer file.Close()
+	info, err := file.Stat()
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+	if !info.Mode().IsRegular() {
+		respondError(c, domain.ErrNotFound)
+		return
+	}
+
+	name := filepath.Base(strings.ReplaceAll(att.Filename, `\`, "/"))
+	name = strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) {
+			return -1
+		}
+		return r
+	}, name)
+	if name == "" || name == "." || name == "/" {
+		name = "file"
+	}
+	c.Header("Content-Disposition", mime.FormatMediaType("inline", map[string]string{"filename": name}))
+	c.Header("Content-Type", previewContentType(att.ContentType))
+	// Never grant uploaded documents same-origin privileges or script execution.
+	c.Header("Content-Security-Policy", "sandbox; default-src 'none'; base-uri 'none'; form-action 'none'")
+	// Do not expose modification-time or ETag cache validators for private files.
+	http.ServeContent(c.Writer, c.Request, name, time.Time{}, file)
+}
+
+func previewContentType(stored string) string {
+	mediaType, _, err := mime.ParseMediaType(stored)
+	if err != nil {
+		return "application/octet-stream"
+	}
+	// Do not echo arbitrary stored types/parameters (especially HTML/SVG/XML).
+	switch mediaType {
+	case "image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf",
+		"application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+		"application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/zip":
+		return mediaType
+	case "text/plain", "text/csv":
+		return mediaType + "; charset=utf-8"
+	default:
+		return "application/octet-stream"
+	}
 }
 
 func (h *TicketHandler) attachmentDir() string {

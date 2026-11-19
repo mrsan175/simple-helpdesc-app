@@ -30,12 +30,12 @@ func scanAttachment(row interface{ Scan(...any) error }) (*domain.Attachment, er
 }
 
 func (r *AttachmentRepository) Create(ctx context.Context, actor *domain.User, att *domain.Attachment) error {
-	tx, requesterID, err := beginTicketContentWrite(ctx, r.DB, actor, att.TicketID)
+	tx, ticket, err := beginTicketContentWrite(ctx, r.DB, actor, att.TicketID)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
-	if err := authorizeAttachmentWrite(ctx, tx, actor, requesterID, att); err != nil {
+	if err := authorizeAttachmentWrite(ctx, tx, actor, ticket, att); err != nil {
 		return err
 	}
 	_, err = tx.ExecContext(ctx,

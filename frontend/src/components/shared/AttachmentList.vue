@@ -13,6 +13,9 @@
         </p>
       </div>
       <div class="flex flex-wrap items-center gap-2 shrink-0">
+        <button type="button" class="btn btn-outline btn-sm text-xs" :aria-label="t('preview_open') + ': ' + attachment.filename" @click="$emit('preview', attachment)">
+          {{ t('preview_open') }}
+        </button>
         <button type="button" class="btn btn-outline btn-sm text-xs" @click="$emit('download', attachment.id)">
           {{ t('download') }}
         </button>
@@ -51,7 +54,7 @@ defineProps({
   canManage: { type: Boolean, default: false },
   busy: { type: Boolean, default: false }
 })
-const emit = defineEmits(['download', 'replace', 'delete'])
+const emit = defineEmits(['download', 'replace', 'delete', 'preview'])
 
 const selectReplacement = (attachment, event) => {
   const file = event.target.files?.[0]
